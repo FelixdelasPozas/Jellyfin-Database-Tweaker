@@ -83,6 +83,7 @@ set (CORE_SOURCES
   Main.cpp
   MainDialog.cpp
   AboutDialog.cpp
+  ProcessThread.cpp
 )
 
 set(CORE_EXTERNAL_LIBS

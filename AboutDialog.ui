@@ -506,6 +506,9 @@ QGroupBox::title {
         <property name="alignment">
          <set>Qt::AlignCenter</set>
         </property>
+        <property name="openExternalLinks">
+         <bool>true</bool>
+        </property>
        </widget>
       </item>
      </layout>

@@ -26,6 +26,14 @@
 // Project
 #include <ui_MainDialog.h>
 
+// sqlite3
+#include <sqlite3/sqlite3.h>
+
+// C++
+#include <memory>
+
+class ProcessThread;
+
 /** \class MainDialog
  * \brief Program dialog
  *
@@ -46,8 +54,13 @@ class MainDialog
     /** \brief MainDialog class virtual destructor.
      *
      */
-    virtual ~MainDialog()
-    {};
+    virtual ~MainDialog();
+
+  public slots:
+    /** \brief Prints the given message in the log widget.
+     *
+     */
+    void log(const QString &msg);
 
   private slots:
     /** \brief Exits the application.
@@ -60,11 +73,45 @@ class MainDialog
      */
     void onAboutButtonPressed();
 
+    /** \brief Opens the file dialog to select a database and checks
+     * it's validity.
+     *
+     */
+    void onFileButtonPressed();
+
+    /** \brief Starts/Stops the update process.
+     *
+     */
+    void onUpdateButtonPressed();
+
+    /** \brief Updates progress bar.
+     *
+     */
+    void onProgressUpdated(int);
+
+    /** \brief Shows the results and deletes the processing thread.
+     *
+     */
+    void onProcessThreadFinished();
+
   private:
     /** \brief Helper method to connect UI signals and slots.
      *
      */
     void connectSignals();
+
+    /** \brief Helper method to close the database.
+     *
+     */
+    void closeDatabase();
+
+    /** \brief Helper to catch exceptions when opening a database
+     *
+     */
+    void onFileButtonPressedImplementation();
+
+    sqlite3                       *m_sql3Handle; /** SQLite db handle */
+    std::shared_ptr<ProcessThread> m_thread;     /** Thread to process database. */
 };
 
 #endif // MAINDIALOG_H_

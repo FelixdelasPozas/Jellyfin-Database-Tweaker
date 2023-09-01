@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>549</width>
-    <height>334</height>
+    <height>434</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -23,7 +23,7 @@
    <iconset resource="rsc/resources.qrc">
     <normaloff>:/JellyfinDB/jellyfin-sql-tweak.svg</normaloff>:/JellyfinDB/jellyfin-sql-tweak.svg</iconset>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,1,0,0">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,1,0,0">
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
@@ -56,9 +56,41 @@
     </layout>
    </item>
    <item>
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;NOTE:&lt;/span&gt; The original database is never modified.&lt;br/&gt;It is copied first and then all operations are performed &lt;span style=&quot; text-decoration: underline;&quot;&gt;on the copy&lt;/span&gt;. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::RichText</enum>
+     </property>
+     <property name="scaledContents">
+      <bool>false</bool>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="m_metadata">
      <property name="enabled">
       <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QGroupBox {
+    border: 1px solid gray;
+    border-radius: 5px;
+    margin-top: 2ex;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center; /* position at the top center */
+    padding: 0px 5px;
+}</string>
      </property>
      <property name="title">
       <string>Metadata to update</string>
@@ -86,6 +118,19 @@
    </item>
    <item>
     <widget class="QGroupBox" name="groupBox">
+     <property name="styleSheet">
+      <string notr="true">QGroupBox {
+    border: 1px solid gray;
+    border-radius: 5px;
+    margin-top: 2ex;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center; /* position at the top center */
+    padding: 0px 5px;
+}</string>
+     </property>
      <property name="title">
       <string>Log</string>
      </property>
