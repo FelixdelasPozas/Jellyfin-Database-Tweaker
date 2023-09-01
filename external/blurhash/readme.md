@@ -1,0 +1,1 @@
+Taken from https://github.com/Nheko-Reborn/blurhash version 0.2.0

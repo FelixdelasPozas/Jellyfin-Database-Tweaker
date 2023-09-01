@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="/JellyfinDB">
+    <file>qt.ico</file>
+    <file>folder.svg</file>
+    <file>jellyfin-sql-tweak.ico</file>
+    <file>jellyfin-sql-tweak.svg</file>
+    <file>sqlite-svgrepo-com.svg</file>
+  </qresource>
+</RCC>
