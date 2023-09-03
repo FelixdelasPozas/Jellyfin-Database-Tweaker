@@ -110,6 +110,13 @@ class MainDialog
      */
     void onFileButtonPressedImplementation();
 
+    /** \brief Helper to display an error message.
+     * \param[in] title Window title.
+     * \param[in] text Message text.
+     *
+     */
+    void showErrorMessage(const QString title, const QString text);
+
     sqlite3                       *m_sql3Handle; /** SQLite db handle */
     std::shared_ptr<ProcessThread> m_thread;     /** Thread to process database. */
 };

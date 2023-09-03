@@ -30,16 +30,19 @@
 #include <filesystem>
 #include <mutex>
 
+const std::string TABLE_NAME = "TypedBaseItems";
+
+QString currentPath = QDir::currentPath();
+
 std::mutex log_mutex;
 
 //---------------------------------------------------------------
-static void sqlite3_log_callback(void *ptr, int iErrCode, const char *zMsg)
+void sqlite3_log_callback(void *ptr, int iErrCode, const char *zMsg)
 {
   std::lock_guard<std::mutex> lg(log_mutex);
 
   auto obj = reinterpret_cast<MainDialog *>(ptr);
-//  if(obj && iErrCode != SQLITE_OK)
-  if(obj)
+  if(obj && iErrCode != SQLITE_OK)
   {
     obj->log(QString("sqlite3 log: ") + QString::fromLatin1(zMsg));
   }
@@ -99,26 +102,12 @@ void MainDialog::onFileButtonPressed()
   }
   catch(const std::exception &e)
   {
-    QMessageBox msgBox;
-    msgBox.setWindowIcon(QIcon(":JellyfinDB/jellyfin-sql-tweak.svg"));
-    msgBox.setText(QString("Error opening database: %1.").arg(QString::fromLatin1(e.what())));
-    msgBox.setIcon(QMessageBox::Icon::Critical);
-    msgBox.setModal(true);
-    msgBox.setWindowTitle("Error opening database");
-    msgBox.exec();
-
+    showErrorMessage("Error opening database", QString("Exception: %1.").arg(QString::fromLatin1(e.what())));
     closeDatabase();
   }
   catch(...)
   {
-    QMessageBox msgBox;
-    msgBox.setWindowIcon(QIcon(":JellyfinDB/jellyfin-sql-tweak.svg"));
-    msgBox.setText(QString("Error opening database: Unknown exception."));
-    msgBox.setIcon(QMessageBox::Icon::Critical);
-    msgBox.setModal(true);
-    msgBox.setWindowTitle("Error opening database");
-    msgBox.exec();
-
+    showErrorMessage("Error opening database", QString("Unknown exception."));
     closeDatabase();
   }
 }
@@ -126,20 +115,21 @@ void MainDialog::onFileButtonPressed()
 //---------------------------------------------------------------
 void MainDialog::onUpdateButtonPressed()
 {
-  auto button = qobject_cast<QToolButton*>(sender());
+  auto button = qobject_cast<QPushButton*>(sender());
   if(button)
   {
     if(button->text().compare("Update DB", Qt::CaseSensitive) == 0)
     {
       if(m_thread) return;
-      m_thread = std::make_shared<ProcessThread>(m_sql3Handle, m_playlistImages->isChecked(), m_artistAndAlbums->isChecked(), this);
+      m_thread = std::make_shared<ProcessThread>(m_sql3Handle, m_playlistImages->isChecked(),
+                                                 m_artistAndAlbums->isChecked(), m_imageName->text(), this);
 
       button->setText("Cancel");
       m_quitButton->setEnabled(false);
 
       connect(m_thread.get(), SIGNAL(progress(int)), this, SLOT(onProgressUpdated(int)));
       connect(m_thread.get(), SIGNAL(finished()), this, SLOT(onProcessThreadFinished()));
-      connect(m_thread.get(), SIGNAL(message(QString)), this, SLOT(log(QString)));
+      connect(m_thread.get(), SIGNAL(message(const QString &)), m_log, SLOT(append(const QString &)));
 
       m_thread->start();
     }
@@ -162,15 +152,14 @@ void MainDialog::closeDatabase()
     const auto result = sqlite3_close(m_sql3Handle);
     if(result != SQLITE_OK)
     {
-      QMessageBox msgBox;
-      msgBox.setWindowIcon(QIcon(":JellyfinDB/jellyfin-sql-tweak.svg"));
-      msgBox.setText(QString("Unable to close database: '%1'. SQLite3 error: %2").arg(dbName)
-          .arg(QString::fromLatin1(sqlite3_errstr(result))));
-      msgBox.setIcon(QMessageBox::Icon::Critical);
-      msgBox.setModal(true);
-      msgBox.setWindowTitle("Error closing database");
-      msgBox.exec();
+      const auto msg = QString("Unable to close database: '%1'. SQLite3 error: %2").arg(dbName)
+                         .arg(QString::fromLatin1(sqlite3_errstr(result)));
+      showErrorMessage("Error closing database", msg);
     }
+
+    m_sql3Handle = nullptr;
+
+    log(QString("Database '") + dbName + "' closed.");
   }
 }
 
@@ -194,7 +183,7 @@ void MainDialog::onProcessThreadFinished()
 void MainDialog::onFileButtonPressedImplementation()
 {
   auto qdbFile = QFileDialog::getOpenFileName(this, "Select Jellyfin database",
-                                               QDir::currentPath(), tr("Jellyfin database (*.db)"),
+                                               currentPath, tr("Jellyfin database (*.db)"),
                                                nullptr, QFileDialog::ReadOnly);
   if(qdbFile.isEmpty()) return;
 
@@ -202,20 +191,15 @@ void MainDialog::onFileButtonPressedImplementation()
 
   if(!std::filesystem::exists(dbFile))
   {
-    QMessageBox msgBox;
-    msgBox.setWindowIcon(QIcon(":JellyfinDB/jellyfin-sql-tweak.svg"));
-    msgBox.setText(QString("Unable to open file: '%1'").arg(qdbFile));
-    msgBox.setIcon(QMessageBox::Icon::Critical);
-    msgBox.setModal(true);
-    msgBox.setWindowTitle("Error opening database");
-    msgBox.exec();
-
+    showErrorMessage("Error opening database", QString("Unable to open file: '%1'").arg(qdbFile));
     return;
   }
 
   log(QString("Selected database: ") + qdbFile);
 
   std::filesystem::path backupDb = dbFile.parent_path();
+  currentPath = QString::fromStdString(backupDb.string());
+
   backupDb /= dbFile.stem();
   backupDb += std::string("_processed") + dbFile.extension().string();
 
@@ -224,27 +208,13 @@ void MainDialog::onFileButtonPressedImplementation()
 
   if(std::filesystem::exists(backupDb))
   {
-    QMessageBox msgBox;
-    msgBox.setWindowIcon(QIcon(":JellyfinDB/jellyfin-sql-tweak.svg"));
-    msgBox.setText(QString("Unable to backup file: '%1' to '%2'. Destination file exists!").arg(qdbFile).arg(qBackupDb));
-    msgBox.setIcon(QMessageBox::Icon::Critical);
-    msgBox.setModal(true);
-    msgBox.setWindowTitle("Error making backup");
-    msgBox.exec();
-
+    showErrorMessage("Error making backup", QString("Unable to backup file: '%1' to '%2'. Destination file exists!").arg(qdbFile).arg(qBackupDb));
     return;
   }
 
   if(!std::filesystem::copy_file(dbFile, backupDb))
   {
-    QMessageBox msgBox;
-    msgBox.setWindowIcon(QIcon(":JellyfinDB/jellyfin-sql-tweak.svg"));
-    msgBox.setText(QString("Unable to backup file: '%1' to '%2'. Unable to copy.").arg(qdbFile).arg(qBackupDb));
-    msgBox.setIcon(QMessageBox::Icon::Critical);
-    msgBox.setModal(true);
-    msgBox.setWindowTitle("Error making backup");
-    msgBox.exec();
-
+    showErrorMessage("Error making backup", QString("Unable to backup file: '%1' to '%2'. Unable to copy.").arg(qdbFile).arg(qBackupDb));
     return;
   }
 
@@ -254,19 +224,58 @@ void MainDialog::onFileButtonPressedImplementation()
   auto result = sqlite3_open(backupDb.string().c_str(), &m_sql3Handle);
   if(result != SQLITE_OK)
   {
-    QMessageBox msgBox;
-    msgBox.setWindowIcon(QIcon(":JellyfinDB/jellyfin-sql-tweak.svg"));
-    msgBox.setText(QString("Unable to open database: '%1'. SQLite3 error: %2").arg(qBackupDb)
-        .arg(QString::fromLatin1(sqlite3_errstr(result))));
-    msgBox.setIcon(QMessageBox::Icon::Critical);
-    msgBox.setModal(true);
-    msgBox.setWindowTitle("Error opening database");
-    msgBox.exec();
+    const auto msg = QString("Unable to open database: '%1'. SQLite3 error: %2").arg(qBackupDb)
+                         .arg(QString::fromLatin1(sqlite3_errstr(result)));
+    showErrorMessage("Error opening database", msg);
 
     closeDatabase();
+    std::filesystem::remove(backupDb);
+    return;
   }
 
-  log(QString("Database opened!"));
+  log(QString("Database opened."));
+
+  sqlite3_stmt *stmt;
+  result = sqlite3_prepare_v2(m_sql3Handle, "SELECT * FROM sqlite_master where type='table'", -1, &stmt, nullptr);
+  if (result != SQLITE_OK)
+  {
+    const auto msg = QString("Unable to make SQL statement. SQLite3 error: %1").arg(QString::fromLatin1(sqlite3_errstr(result)));
+    showErrorMessage("Error opening database", msg);
+
+    closeDatabase();
+    std::filesystem::remove(backupDb);
+    return;
+  }
+
+  bool hasTable = false;
+  while ((result = sqlite3_step(stmt)) == SQLITE_ROW)
+  {
+    auto name = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+    if(TABLE_NAME.compare(name) == 0)
+    {
+      hasTable = true;
+      result = SQLITE_DONE;
+      break;
+    }
+  }
+
+  if (result != SQLITE_DONE)
+  {
+    const auto msg = QString("Unable to finish SQL statement. SQLite3 error: %1").arg(QString::fromLatin1(sqlite3_errstr(result)));
+    showErrorMessage("Error opening database", msg);
+  }
+  sqlite3_finalize(stmt);
+
+  if(!hasTable)
+  {
+    showErrorMessage("Error opening database", QString("Database: '%1' doesn't contain the correct tables.").arg(qBackupDb));
+
+    closeDatabase();
+    std::filesystem::remove(backupDb);
+    return;
+  }
+
+  log(QString("Database contains the correct tables."));
 
   // Success, modify UI
   m_BDPath->setText(qdbFile);
@@ -281,4 +290,16 @@ void MainDialog::onFileButtonPressedImplementation()
 void MainDialog::log(const QString &msg)
 {
   m_log->append(msg);
+}
+
+//---------------------------------------------------------------
+void MainDialog::showErrorMessage(const QString title, const QString text)
+{
+  QMessageBox msgBox;
+  msgBox.setWindowIcon(QIcon(":JellyfinDB/jellyfin-sql-tweak.svg"));
+  msgBox.setText(text);
+  msgBox.setIcon(QMessageBox::Icon::Critical);
+  msgBox.setModal(true);
+  msgBox.setWindowTitle(title);
+  msgBox.exec();
 }

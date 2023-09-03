@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>549</width>
-    <height>434</height>
+    <height>461</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -34,7 +34,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="m_BDPath"/>
+      <widget class="QLineEdit" name="m_BDPath">
+       <property name="placeholderText">
+        <string>library.db</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QToolButton" name="m_openDBButton">
@@ -58,7 +62,7 @@
    <item>
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;NOTE:&lt;/span&gt; The original database is never modified.&lt;br/&gt;It is copied first and then all operations are performed &lt;span style=&quot; text-decoration: underline;&quot;&gt;on the copy&lt;/span&gt;. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;NOTE:&lt;/span&gt; The original database is never modified. It is copied first and then all operations are performed &lt;span style=&quot; text-decoration: underline;&quot;&gt;on the copy&lt;/span&gt;. Backup file is deleted if the database is not the correct one (checked at opening).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="textFormat">
       <enum>Qt::RichText</enum>
@@ -67,7 +71,7 @@
       <bool>false</bool>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
@@ -100,16 +104,43 @@ QGroupBox::title {
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <widget class="QCheckBox" name="m_playlistImages">
-        <property name="text">
-         <string>Playlist images</string>
-        </property>
-       </widget>
+       <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,0,0">
+        <item>
+         <widget class="QCheckBox" name="m_playlistImages">
+          <property name="text">
+           <string>Playlist images</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_3">
+          <property name="text">
+           <string>Image name: </string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="m_imageName">
+          <property name="text">
+           <string>Frontal</string>
+          </property>
+          <property name="placeholderText">
+           <string>Frontal</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
        <widget class="QCheckBox" name="m_artistAndAlbums">
         <property name="text">
          <string>Artists and albums</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -136,7 +167,17 @@ QGroupBox::title {
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
-       <widget class="QTextEdit" name="m_log"/>
+       <widget class="QTextEdit" name="m_log">
+        <property name="undoRedoEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="placeholderText">
+         <string>No action done.</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
