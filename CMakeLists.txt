@@ -20,7 +20,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 
 # Find the QtWidgets library
-find_package(Qt5 COMPONENTS Widgets)
+find_package(Qt5 COMPONENTS Widgets WinExtras)
 
 # We need add -DQT_WIDGETS_LIB when using QtWidgets in Qt 5.
 #add_definitions(${Qt5Widgets_DEFINITIONS})
@@ -57,6 +57,7 @@ include_directories(
   ${CMAKE_BINARY_DIR}          # Generated .h files
   ${CMAKE_CURRENT_BINARY_DIR}  # For wrap/ui files
   ${Qt5Widgets_INCLUDE_DIRS}
+  ${Qt5WinExtras_INCLUDE_DIRS}
   )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-deprecated -std=c++20 -mwindows -m64")
@@ -88,6 +89,7 @@ set (CORE_SOURCES
 
 set(CORE_EXTERNAL_LIBS
   Qt5::Widgets
+  Qt5::WinExtras
 )
   
 add_executable(JellyfinDBTweaker ${CORE_SOURCES})

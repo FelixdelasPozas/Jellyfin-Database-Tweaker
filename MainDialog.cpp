@@ -25,16 +25,28 @@
 // Qt
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QTextCursor>
+#include <QTextBlock>
+#include <QSettings>
+#include <QDir>
+#include <QtWinExtras/QWinTaskbarProgress>
 
 // C++
 #include <filesystem>
 #include <mutex>
+#include <iostream>
 
 const std::string TABLE_NAME = "TypedBaseItems";
 
 QString currentPath = QDir::currentPath();
 
 std::mutex log_mutex;
+
+// Configuration registry keys.
+const QString DATABASE_KEY = "Database";
+const QString MODIFY_ARTIST = "Modify artist and albums";
+const QString MODIFY_IMAGES = "Modify images";
+const QString IMAGES_NAME = "Images filename";
 
 //---------------------------------------------------------------
 void sqlite3_log_callback(void *ptr, int iErrCode, const char *zMsg)
@@ -45,6 +57,7 @@ void sqlite3_log_callback(void *ptr, int iErrCode, const char *zMsg)
   if(obj && iErrCode != SQLITE_OK)
   {
     obj->log(QString("sqlite3 log: ") + QString::fromLatin1(zMsg));
+    std::cerr << "SQLITE3 ERROR: " << zMsg << std::endl;
   }
 }
 
@@ -53,6 +66,7 @@ MainDialog::MainDialog(QWidget *p, Qt::WindowFlags f)
 : QDialog(p,f)
 , m_sql3Handle{nullptr}
 , m_thread{nullptr}
+, m_taskBarButton{nullptr}
 {
   setupUi(this);
 
@@ -61,14 +75,29 @@ MainDialog::MainDialog(QWidget *p, Qt::WindowFlags f)
   sqlite3_initialize();
   sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
   sqlite3_config(SQLITE_CONFIG_LOG, sqlite3_log_callback, this);
+
+  qRegisterMetaType<QTextBlock>("QTextBlock");
+  qRegisterMetaType<QTextCursor>("QTextCursor");
+
+  loadSettings();
 }
 
 //---------------------------------------------------------------
 MainDialog::~MainDialog()
 {
+  if(m_thread)
+  {
+    m_thread->abort();
+    m_thread->wait();
+  }
+
   closeDatabase();
 
   sqlite3_shutdown();
+
+  saveSettings();
+
+  m_taskBarButton->deleteLater();
 }
 
 //---------------------------------------------------------------
@@ -120,24 +149,34 @@ void MainDialog::onUpdateButtonPressed()
   {
     if(button->text().compare("Update DB", Qt::CaseSensitive) == 0)
     {
+      if(!m_artistAndAlbums->isChecked() && !m_playlistImages->isChecked())
+      {
+        showErrorMessage("Error updating database", "At least updating artists/albums or images metadata must be checked!");
+        return;
+      }
+
       if(m_thread) return;
+
       m_thread = std::make_shared<ProcessThread>(m_sql3Handle, m_playlistImages->isChecked(),
-                                                 m_artistAndAlbums->isChecked(), m_imageName->text(), this);
+                                                 m_artistAndAlbums->isChecked(), m_albumImages->isChecked(),
+                                                 m_imageName->text(), this);
 
       button->setText("Cancel");
       m_quitButton->setEnabled(false);
 
       connect(m_thread.get(), SIGNAL(progress(int)), this, SLOT(onProgressUpdated(int)));
       connect(m_thread.get(), SIGNAL(finished()), this, SLOT(onProcessThreadFinished()));
-      connect(m_thread.get(), SIGNAL(message(const QString &)), m_log, SLOT(append(const QString &)));
+      connect(m_thread.get(), SIGNAL(message(const QString &)), this, SLOT(log(const QString &)), Qt::BlockingQueuedConnection);
 
       m_thread->start();
     }
     else
     {
+      button->setText("Update DB");
+
       if(!m_thread) return;
 
-      if(m_thread->isRunning()) m_thread->stop();
+      if(m_thread->isRunning()) m_thread->abort();
     }
   }
 }
@@ -167,11 +206,22 @@ void MainDialog::closeDatabase()
 void MainDialog::onProgressUpdated(int value)
 {
   m_progressBar->setValue(value);
+  m_taskBarButton->progress()->setValue(value);
 }
 
 //---------------------------------------------------------------
 void MainDialog::onProcessThreadFinished()
 {
+  if(m_thread && !m_thread->error().isEmpty() && !m_thread->isAborted())
+  {
+    showErrorMessage("Error processing data", m_thread->error());
+  }
+
+  if(m_thread->isAborted())
+  {
+    log("Database update aborted!");
+  }
+
   m_thread = nullptr;
 
   m_updateButton->setText("Update DB");
@@ -182,6 +232,15 @@ void MainDialog::onProcessThreadFinished()
 //---------------------------------------------------------------
 void MainDialog::onFileButtonPressedImplementation()
 {
+  if(!m_DatabasePath->text().isEmpty())
+  {
+    const QFileInfo fInfo{m_DatabasePath->text()};
+    if(fInfo.exists())
+      currentPath = fInfo.path();
+    else
+      currentPath = QDir::currentPath();
+  }
+
   auto qdbFile = QFileDialog::getOpenFileName(this, "Select Jellyfin database",
                                                currentPath, tr("Jellyfin database (*.db)"),
                                                nullptr, QFileDialog::ReadOnly);
@@ -201,7 +260,7 @@ void MainDialog::onFileButtonPressedImplementation()
   currentPath = QString::fromStdString(backupDb.string());
 
   backupDb /= dbFile.stem();
-  backupDb += std::string("_processed") + dbFile.extension().string();
+  backupDb += std::string("_backup") + dbFile.extension().string();
 
   const auto qBackupDb = QString::fromStdWString(backupDb.wstring());
   log(QString("Attempting to copy database"));
@@ -221,10 +280,10 @@ void MainDialog::onFileButtonPressedImplementation()
   log(QString("Database copied to: %1").arg(qBackupDb));
 
   // Try to open with sqlite to test if db is locked.
-  auto result = sqlite3_open(backupDb.string().c_str(), &m_sql3Handle);
+  auto result = sqlite3_open(dbFile.string().c_str(), &m_sql3Handle);
   if(result != SQLITE_OK)
   {
-    const auto msg = QString("Unable to open database: '%1'. SQLite3 error: %2").arg(qBackupDb)
+    const auto msg = QString("Unable to open database: '%1'. SQLite3 error: %2").arg(qdbFile)
                          .arg(QString::fromLatin1(sqlite3_errstr(result)));
     showErrorMessage("Error opening database", msg);
 
@@ -268,7 +327,7 @@ void MainDialog::onFileButtonPressedImplementation()
 
   if(!hasTable)
   {
-    showErrorMessage("Error opening database", QString("Database: '%1' doesn't contain the correct tables.").arg(qBackupDb));
+    showErrorMessage("Error opening database", QString("Database: '%1' doesn't contain the correct tables.").arg(qdbFile));
 
     closeDatabase();
     std::filesystem::remove(backupDb);
@@ -278,8 +337,8 @@ void MainDialog::onFileButtonPressedImplementation()
   log(QString("Database contains the correct tables."));
 
   // Success, modify UI
-  m_BDPath->setText(qdbFile);
-  m_BDPath->setEnabled(false);
+  m_DatabasePath->setText(qdbFile);
+  m_DatabasePath->setEnabled(false);
   m_openDBButton->setEnabled(false);
   m_progressBar->setEnabled(true);
   m_metadata->setEnabled(true);
@@ -302,4 +361,45 @@ void MainDialog::showErrorMessage(const QString title, const QString text)
   msgBox.setModal(true);
   msgBox.setWindowTitle(title);
   msgBox.exec();
+}
+
+//---------------------------------------------------------------
+void MainDialog::saveSettings()
+{
+  QSettings settings("Felix de las Pozas Alvarez", "JellyfinDatabaseTweaker");
+
+  QFileInfo fInfo{m_DatabasePath->text()};
+  if(fInfo.exists())
+    settings.setValue(DATABASE_KEY, fInfo.absoluteFilePath());
+  settings.setValue(MODIFY_ARTIST, m_artistAndAlbums->isChecked());
+  settings.setValue(MODIFY_IMAGES, m_playlistImages->isChecked());
+  settings.setValue(IMAGES_NAME, m_imageName->text());
+
+  settings.sync();
+}
+
+//---------------------------------------------------------------
+void MainDialog::loadSettings()
+{
+  QSettings settings("Felix de las Pozas Alvarez", "JellyfinDatabaseTweaker");
+
+  const auto db = settings.value(DATABASE_KEY, "").toString();
+  if(!db.isEmpty())
+    m_DatabasePath->setText(QDir::toNativeSeparators(db));
+
+  m_artistAndAlbums->setChecked(settings.value(MODIFY_ARTIST, true).toBool());
+  m_playlistImages->setChecked(settings.value(MODIFY_IMAGES, true).toBool());
+  m_imageName->setText(settings.value(IMAGES_NAME, "Frontal").toString());
+}
+
+//---------------------------------------------------------------
+void MainDialog::showEvent(QShowEvent* e)
+{
+  QDialog::showEvent(e);
+
+  m_taskBarButton = new QWinTaskbarButton(this);
+  m_taskBarButton->setWindow(this->windowHandle());
+  m_taskBarButton->progress()->setRange(0, 100);
+  m_taskBarButton->progress()->setVisible(true);
+  m_taskBarButton->progress()->setValue(0);
 }

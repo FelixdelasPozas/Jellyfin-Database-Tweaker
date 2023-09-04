@@ -22,6 +22,7 @@
 
 // Qt
 #include <QDialog>
+#include <QtWinExtras/QWinTaskbarButton>
 
 // Project
 #include <ui_MainDialog.h>
@@ -94,6 +95,9 @@ class MainDialog
      */
     void onProcessThreadFinished();
 
+  protected:
+    virtual void showEvent(QShowEvent *e) override final;
+
   private:
     /** \brief Helper method to connect UI signals and slots.
      *
@@ -110,6 +114,16 @@ class MainDialog
      */
     void onFileButtonPressedImplementation();
 
+    /** \brief Helper method to save application configuration to the registry.
+     *
+     */
+    void saveSettings();
+
+    /** \brief Helper method to load application configuration from the registry.
+     *
+     */
+    void loadSettings();
+
     /** \brief Helper to display an error message.
      * \param[in] title Window title.
      * \param[in] text Message text.
@@ -117,8 +131,9 @@ class MainDialog
      */
     void showErrorMessage(const QString title, const QString text);
 
-    sqlite3                       *m_sql3Handle; /** SQLite db handle */
-    std::shared_ptr<ProcessThread> m_thread;     /** Thread to process database. */
+    sqlite3                       *m_sql3Handle;    /** SQLite db handle */
+    std::shared_ptr<ProcessThread> m_thread;        /** Thread to process database. */
+    QWinTaskbarButton             *m_taskBarButton; /** taskbar progress widget. */
 };
 
 #endif // MAINDIALOG_H_

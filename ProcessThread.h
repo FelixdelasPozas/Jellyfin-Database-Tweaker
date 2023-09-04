@@ -42,12 +42,13 @@ class ProcessThread
      * \param[in] db SQLite db handle.
      * \param[in] processImages True to enter image data and false otherwise.
      * \param[in] processArtists True to enter artists and albums data and false otherwise.
+     * \param[in] processAlbums True to enter albums images and false otherwise.
      * \param[in] imageName Name without extension of the image filename to search in each playlist.
      * \param[in] parent Raw pointer of the parent QObject.
      *
      */
-    explicit ProcessThread(sqlite3* db, bool processImages,
-                           bool processArtists, const QString imageName, QObject *parent = nullptr);
+    explicit ProcessThread(sqlite3* db, bool processImages, bool processArtists, bool processAlbums,
+        const QString imageName, QObject *parent = nullptr);
 
     /** \brief ProcessThread class virtual destructor.
      *
@@ -58,7 +59,7 @@ class ProcessThread
     /** \brief Aborts the thread if running
      *
      */
-    void stop()
+    void abort()
     { m_abort = true; }
 
     /** \brief Returns the error text or empty if none.
@@ -66,6 +67,12 @@ class ProcessThread
      */
     QString error() const
     { return m_error; }
+
+    /** \brief Returns the abort status.
+     *
+     */
+    bool isAborted() const
+    { return m_abort; }
 
   signals:
     void progress(int);
@@ -83,6 +90,7 @@ class ProcessThread
     sqlite3 *m_sql3Handle;     /** SQLite db handle */
     bool     m_processImages;  /** true to enter image data, false otherwise. */
     bool     m_processArtists; /** true to enter artists and albums data, false otherwise. */
+    bool     m_processAlbums;  /** true to enter albums image data, false otherwise. */
     QString  m_imageName;      /** name of image filename without extension to look for in playlists path. */
     bool     m_abort;          /** true to stop the process. */
     QString  m_error;          /** error message or empty if none. */

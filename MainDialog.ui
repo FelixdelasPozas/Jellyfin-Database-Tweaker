@@ -34,7 +34,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="m_BDPath">
+      <widget class="QLineEdit" name="m_DatabasePath">
        <property name="placeholderText">
         <string>library.db</string>
        </property>
@@ -135,9 +135,19 @@ QGroupBox::title {
        </layout>
       </item>
       <item>
+       <widget class="QCheckBox" name="m_albumImages">
+        <property name="text">
+         <string>Album images</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QCheckBox" name="m_artistAndAlbums">
         <property name="text">
-         <string>Artists and albums</string>
+         <string>Artists and albums (for both playlists and albums)</string>
         </property>
         <property name="checked">
          <bool>true</bool>
