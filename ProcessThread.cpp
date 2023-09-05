@@ -41,17 +41,15 @@
 const std::string TABLE_NAME = "TypedBaseItems";
 const std::string PLAYLIST_VALUE = "MediaBrowser.Controller.Playlists.Playlist";
 const std::string ALBUM_VALUE = "MediaBrowser.Controller.Entities.Audio.MusicAlbum";
+const std::string TRACK_VALUE = "MediaBrowser.Controller.Entities.Audio.Audio";
 const int BLURHASH_MAXSIZE = 5;
 const QString SEPARATOR = " - ";
 
 //---------------------------------------------------------------
-ProcessThread::ProcessThread(sqlite3 *db, bool processImages, bool processArtists, bool processAlbums, const QString imageName, QObject *parent)
+ProcessThread::ProcessThread(sqlite3 *db, const ProcessConfiguration config, QObject *parent)
 : QThread(parent)
 , m_sql3Handle{db}
-, m_processImages{processImages}
-, m_processArtists{processArtists}
-, m_processAlbums{processAlbums}
-, m_imageName{imageName}
+, m_config{config}
 , m_abort{false}
 {
 }
@@ -101,7 +99,7 @@ void ProcessThread::runImplementation()
       return 0;
     };
 
-    std::string sql = std::string("SELECT COUNT(*) FROM ") + TABLE_NAME + " where type='" + PLAYLIST_VALUE + "'";
+    std::string sql = std::string("SELECT COUNT(*) FROM ") + TABLE_NAME + " where type='" + PLAYLIST_VALUE + "' AND Images IS NULL";
     auto result = sqlite3_exec(m_sql3Handle, sql.c_str(), count_callback, &totalProgress, nullptr);
     if (result != SQLITE_OK)
     {
@@ -116,7 +114,7 @@ void ProcessThread::runImplementation()
 
     // GENERATE Process each individually.
     sqlite3_stmt *stmt;
-    sql = std::string("SELECT * FROM ") + TABLE_NAME + " where type='" + PLAYLIST_VALUE + "'";
+    sql = std::string("SELECT * FROM ") + TABLE_NAME + " where type='" + PLAYLIST_VALUE + "' AND Images IS NULL";
     result = sqlite3_prepare_v2(m_sql3Handle, sql.c_str(), -1, &stmt, nullptr);
     if (result != SQLITE_OK)
     {
@@ -138,12 +136,12 @@ void ProcessThread::runImplementation()
       }
       std::string album, artist, entryData;
 
-      if(m_processImages)
+      if(m_config.processImages)
       {
         std::filesystem::path imagePath;
         for (auto const& dir_entry : std::filesystem::directory_iterator{playlistPath.parent_path()})
         {
-          if(dir_entry.path().string().find(m_imageName.toStdString()) != std::string::npos)
+          if(dir_entry.path().string().find(m_config.imageName.toStdString()) != std::string::npos)
           {
             imagePath = dir_entry.path();
             break;
@@ -198,7 +196,7 @@ void ProcessThread::runImplementation()
         }
       }
 
-      if(m_processArtists)
+      if(m_config.processArtists)
       {
         auto parts = QString::fromStdWString(playlistPath.parent_path().stem().wstring()).split(SEPARATOR);
         if(parts.size() > 1)
@@ -235,7 +233,7 @@ void ProcessThread::runImplementation()
 
     if (result != SQLITE_DONE && !m_abort)
     {
-      m_error = QString("Unable to finish SQL statement. SQLite3 error: %1").arg(QString::fromLatin1(sqlite3_errstr(result)));
+      m_error = QString("Unable to finish step SQL statement. SQLite3 error: %1").arg(QString::fromLatin1(sqlite3_errstr(result)));
     }
     result = sqlite3_finalize(stmt);
     if(result != SQLITE_OK)
@@ -249,10 +247,50 @@ void ProcessThread::runImplementation()
       return;
     }
 
+    std::vector<std::string> trackOperations;
+    if(m_config.processTracks)
+    {
+      std::string sql = std::string("SELECT COUNT(*) FROM ") + TABLE_NAME + " where type='" + TRACK_VALUE + "' AND IndexNumber IS NULL";
+      unsigned long trackNumber = 0;
+      auto result = sqlite3_exec(m_sql3Handle, sql.c_str(), count_callback, &trackNumber, nullptr);
+      if (result != SQLITE_OK)
+      {
+        m_error = QString("Unable to count number of track elements. SQLite3 error: %1")
+                       .arg(QString::fromLatin1(sqlite3_errstr(result)));
+        return;
+      }
+
+      emit message(QString("Found %1 tracks to update. Generating UPDATE data...").arg(trackNumber));
+
+      sql = std::string("SELECT * FROM ") + TABLE_NAME + " where type='" + TRACK_VALUE + "' AND IndexNumber IS NULL";
+      result = sqlite3_prepare_v2(m_sql3Handle, sql.c_str(), -1, &stmt, nullptr);
+      if (result != SQLITE_OK)
+      {
+        m_error = QString("Unable to make SQL statement. SQLite3 error: %1").arg(QString::fromLatin1(sqlite3_errstr(result)));
+        sqlite3_finalize(stmt);
+        return;
+      }
+
+      while ((result = sqlite3_step(stmt)) == SQLITE_ROW && !m_abort)
+      {
+        auto pathValue = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 4));
+
+        const std::filesystem::path trackPath(pathValue);
+        if(!std::filesystem::exists(trackPath))
+        {
+          emit message(QString("<span style=\" color:#ff0000;\">Track path '%1' doesn't exist!</span>").arg(QString::fromStdWString(trackPath.wstring())));
+          continue;
+        }
+
+        trackOperations.push_back(std::string(pathValue));
+      }
+      sqlite3_finalize(stmt);
+    }
+
     emit message("Finished generating data. Updating database.");
 
-    const std::string ARTISTS_PART = m_processArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album,":"";
-    const std::string IMAGES_PART = m_processImages ? "Images = :image":"";
+    const std::string ARTISTS_PART = m_config.processArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album,":"";
+    const std::string IMAGES_PART = m_config.processImages ? "Images = :image":"";
     std::string strStat = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + " " + IMAGES_PART + " WHERE Path LIKE :path AND MediaType = 'Audio'";
     sqlite3_stmt * statement;
     result = sqlite3_prepare_v3(m_sql3Handle, strStat.c_str(), -1, SQLITE_PREPARE_PERSISTENT, &statement, NULL);
@@ -277,13 +315,13 @@ void ProcessThread::runImplementation()
 
       int artistIdx = 0, albumIdx = 0, imageIdx = 0;
 
-      if(m_processArtists)
+      if(m_config.processArtists)
       {
         artistIdx = sqlite3_bind_parameter_index(statement, ":artist");
         albumIdx = sqlite3_bind_parameter_index(statement, ":album");
       }
 
-      if(m_processImages)
+      if(m_config.processImages)
       {
         imageIdx = sqlite3_bind_parameter_index(statement, ":image");
       }
@@ -291,7 +329,7 @@ void ProcessThread::runImplementation()
       const auto pathIdx = sqlite3_bind_parameter_index(statement, ":path");
       checkError(result, SQLITE_OK, __LINE__);
 
-      if(m_processArtists)
+      if(m_config.processArtists)
       {
         result = sqlite3_bind_text(statement, artistIdx, op.artist.c_str(), op.artist.length(), SQLITE_TRANSIENT);
         checkError(result, SQLITE_OK, __LINE__);
@@ -299,7 +337,7 @@ void ProcessThread::runImplementation()
         checkError(result, SQLITE_OK, __LINE__);
       }
 
-      if(m_processImages)
+      if(m_config.processImages)
       {
         result = sqlite3_bind_text(statement, imageIdx, op.imageData.c_str(), op.imageData.length(), SQLITE_TRANSIENT);
         checkError(result, SQLITE_OK, __LINE__);
@@ -328,10 +366,10 @@ void ProcessThread::runImplementation()
     result = sqlite3_finalize(statement);
     checkError(result, SQLITE_OK, __LINE__);
 
-    if(m_processAlbums)
+    if(m_config.processAlbums)
     {
-      const std::string ARTISTS_PART = m_processArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album,":"";
-      const std::string IMAGES_PART = m_processImages ? "Images = :image":"";
+      const std::string ARTISTS_PART = m_config.processArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album,":"";
+      const std::string IMAGES_PART = m_config.processImages ? "Images = :image":"";
       std::string strStat = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + " " + IMAGES_PART + " WHERE Path = :path "
           + "AND MediaType IS NULL AND type ='" + ALBUM_VALUE + "'";
 
@@ -356,13 +394,13 @@ void ProcessThread::runImplementation()
 
         int artistIdx = 0, albumIdx = 0, imageIdx = 0;
 
-        if(m_processArtists)
+        if(m_config.processArtists)
         {
           artistIdx = sqlite3_bind_parameter_index(statement, ":artist");
           albumIdx = sqlite3_bind_parameter_index(statement, ":album");
         }
 
-        if(m_processImages)
+        if(m_config.processImages)
         {
           imageIdx = sqlite3_bind_parameter_index(statement, ":image");
         }
@@ -370,7 +408,7 @@ void ProcessThread::runImplementation()
         const auto pathIdx = sqlite3_bind_parameter_index(statement, ":path");
         checkError(result, SQLITE_OK, __LINE__);
 
-        if(m_processArtists)
+        if(m_config.processArtists)
         {
           result = sqlite3_bind_text(statement, artistIdx, op.artist.c_str(), op.artist.length(), SQLITE_TRANSIENT);
           checkError(result, SQLITE_OK, __LINE__);
@@ -378,7 +416,7 @@ void ProcessThread::runImplementation()
           checkError(result, SQLITE_OK, __LINE__);
         }
 
-        if(m_processImages)
+        if(m_config.processImages)
         {
           result = sqlite3_bind_text(statement, imageIdx, op.imageData.c_str(), op.imageData.length(), SQLITE_TRANSIENT);
           checkError(result, SQLITE_OK, __LINE__);
@@ -407,6 +445,11 @@ void ProcessThread::runImplementation()
 
     result = sqlite3_finalize(statement);
     checkError(result, SQLITE_OK, __LINE__);
+
+    if(m_config.processTracks)
+    {
+      // TODO
+    }
 
     emit message("Finished!");
   }

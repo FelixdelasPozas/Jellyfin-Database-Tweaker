@@ -29,6 +29,22 @@
 // C++
 #include <filesystem>
 
+
+/** \struct ProcessConfiguration
+ * \brief Contains the options of the processing thread.
+ *
+ */
+struct ProcessConfiguration
+{
+    bool processImages;  /** true to compute blurhash and insert images in metadata of playlists, false otherwise. */
+    bool processArtists; /** true to add artist and album metadata to items. */
+    bool processAlbums;  /** true to enter artist. album and image metadata in Album entries. */
+    bool processTracks;  /** true to add item index in tracks entities. */
+    QString imageName;
+
+    ProcessConfiguration(): processImages{true}, processArtists{true}, processAlbums{true}, processTracks{true} {};
+};
+
 /** \class ProcessThread
  * \brief Thread to process the database and enter the missing data.
  *
@@ -40,15 +56,11 @@ class ProcessThread
   public:
     /** \brief ProcessThread class constructor.
      * \param[in] db SQLite db handle.
-     * \param[in] processImages True to enter image data and false otherwise.
-     * \param[in] processArtists True to enter artists and albums data and false otherwise.
-     * \param[in] processAlbums True to enter albums images and false otherwise.
-     * \param[in] imageName Name without extension of the image filename to search in each playlist.
+     * \param[in] config ProcessConfiguration object with parameter values.
      * \param[in] parent Raw pointer of the parent QObject.
      *
      */
-    explicit ProcessThread(sqlite3* db, bool processImages, bool processArtists, bool processAlbums,
-        const QString imageName, QObject *parent = nullptr);
+    explicit ProcessThread(sqlite3* db, const ProcessConfiguration config, QObject *parent = nullptr);
 
     /** \brief ProcessThread class virtual destructor.
      *
@@ -87,13 +99,10 @@ class ProcessThread
      */
     void runImplementation();
 
-    sqlite3 *m_sql3Handle;     /** SQLite db handle */
-    bool     m_processImages;  /** true to enter image data, false otherwise. */
-    bool     m_processArtists; /** true to enter artists and albums data, false otherwise. */
-    bool     m_processAlbums;  /** true to enter albums image data, false otherwise. */
-    QString  m_imageName;      /** name of image filename without extension to look for in playlists path. */
-    bool     m_abort;          /** true to stop the process. */
-    QString  m_error;          /** error message or empty if none. */
+    sqlite3             *m_sql3Handle; /** SQLite db handle */
+    ProcessConfiguration m_config;     /** process parameters. */
+    bool                 m_abort;          /** true to stop the process. */
+    QString              m_error;          /** error message or empty if none. */
 
     struct OperationData
     {

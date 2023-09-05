@@ -30,6 +30,7 @@
 #include <QSettings>
 #include <QDir>
 #include <QtWinExtras/QWinTaskbarProgress>
+#include <QDateTime>
 
 // C++
 #include <filesystem>
@@ -157,9 +158,14 @@ void MainDialog::onUpdateButtonPressed()
 
       if(m_thread) return;
 
-      m_thread = std::make_shared<ProcessThread>(m_sql3Handle, m_playlistImages->isChecked(),
-                                                 m_artistAndAlbums->isChecked(), m_albumImages->isChecked(),
-                                                 m_imageName->text(), this);
+      ProcessConfiguration config;
+      config.processImages = m_playlistImages->isChecked();
+      config.processArtists = m_artistAndAlbums->isChecked();
+      config.processAlbums = m_albumImages->isChecked();
+      config.processTracks = true; // TODO
+      config.imageName = m_imageName->text();
+
+      m_thread = std::make_shared<ProcessThread>(m_sql3Handle, config, this);
 
       button->setText("Cancel");
       m_quitButton->setEnabled(false);
@@ -259,8 +265,10 @@ void MainDialog::onFileButtonPressedImplementation()
   std::filesystem::path backupDb = dbFile.parent_path();
   currentPath = QString::fromStdString(backupDb.string());
 
+  auto currentTime = QDateTime::currentDateTime().toString("dd_MM_yyyy-hh_mm_ss");
+
   backupDb /= dbFile.stem();
-  backupDb += std::string("_backup") + dbFile.extension().string();
+  backupDb += std::string("_backup-") + currentTime.toStdString() + dbFile.extension().string();
 
   const auto qBackupDb = QString::fromStdWString(backupDb.wstring());
   log(QString("Attempting to copy database"));
