@@ -28,7 +28,8 @@
 
 // C++
 #include <filesystem>
-
+#include <set>
+#include <map>
 
 /** \struct ProcessConfiguration
  * \brief Contains the options of the processing thread.
@@ -36,13 +37,53 @@
  */
 struct ProcessConfiguration
 {
-    bool processImages;  /** true to compute blurhash and insert images in metadata of playlists, false otherwise. */
-    bool processArtists; /** true to add artist and album metadata to items. */
-    bool processAlbums;  /** true to enter artist. album and image metadata in Album entries. */
-    bool processTracks;  /** true to add item index in tracks entities. */
+    bool processImages;    /** true to compute blurhash and insert images in metadata of playlists, false otherwise. */
+    bool processArtists;   /** true to add artist and album metadata to items. */
+    bool processAlbums;    /** true to enter artist. album and image metadata in Album entries. */
+    bool processTracks;    /** true to add item index in tracks entities. */
+    bool processPlaylists; /** true to add tracklist to playlists if empty. */
     QString imageName;
 
-    ProcessConfiguration(): processImages{true}, processArtists{true}, processAlbums{true}, processTracks{true} {};
+    ProcessConfiguration()
+    : processImages{true}
+    , processArtists{true}
+    , processAlbums{true}
+    , processTracks{true}
+    , processPlaylists{true}
+    {};
+};
+
+/** \struct PlaylistOperationData
+ * \brief Contains the necesary data to modify playlist/albums and tracks images and artists .metadata
+ *
+ */
+struct PlaylistImageOperationData
+{
+    std::filesystem::path path;      /** path of playlist. */
+    std::string           imageData; /** image data, blurhash etc.. */
+    std::string           artist;    /** playlist artist name. */
+    std::string           album;     /** playlist album title. */
+};
+
+/** \struct TrackOperationData
+ * \brief Contains the necessary data to set the track number into a music track.
+ *
+ */
+struct TrackNumberOperationData
+{
+    std::filesystem::path path;     /** path of track */
+    unsigned int          trackNum; /** track sequential number (takes into consideration multiple discs. */
+};
+
+/** \struct PlaylistTracksOperationData
+ * \brief Contains the necessary data to set the tracklist of a playlist.
+ *
+ */
+struct PlaylistTracksOperationData
+{
+    std::filesystem::path path;             /** path of the playlist. */
+    std::set<std::filesystem::path> tracks; /** ordered mp3 tracks */
+    std::vector<std::string> track_ids;     /** ordered track ids in the database. */
 };
 
 /** \class ProcessThread
@@ -99,18 +140,80 @@ class ProcessThread
      */
     void runImplementation();
 
+    /** \brief Counts the number of operations to perform in the database.
+     *
+     */
+    void countOperations();
+
+    /** \brief Performs a count operation in the database with the specified WHERE statement.
+     * \param[in] where_sql SQL statement starting with WHERE.
+     *
+     */
+    unsigned long countSQLiteOperation(const std::string &where_sql);
+
+    /** \brief Counts the number of rows of Albums to update.
+     *
+     */
+    unsigned long countAlbumsToUpdate();
+
+    /** \brief Generate Playlist images operations data
+     *
+     */
+    std::vector<PlaylistImageOperationData> generatePlaylistImageOperations();
+
+    /** \brief Generate Tracks operations data.
+     *
+     */
+    std::vector<TrackNumberOperationData> generateTracksNumberOperationData();
+
+    /** \brief Generata Playlist tracks operations data.
+     *
+     */
+    std::vector<PlaylistTracksOperationData> generatePlaylistTracksOperations();
+
+    /** \brief Performs the playlist image update operations.
+     * \param[in] operations List of playlist data operations to update.
+     *
+     */
+    void updatePlaylistImages(const std::vector<PlaylistImageOperationData> &operations);
+
+    /** \brief Performs the tracks numbers operations.
+     * \param[in] operations List of tracks data operations to update.
+     *
+     */
+    void updateTrackNumbers(const std::vector<TrackNumberOperationData> &operations);
+
+    /** \brief Performs the album metadata (artist/album name) operations.
+     * \param[in] operations List of playlist data operations to update.
+     *
+     */
+    void updateAlbumOperations(const std::vector<PlaylistImageOperationData> & operations);
+
+    /** \brief Performs the playlist tracklist update operations.
+     * \param[in] operations List of playlist tracks data operations to update.
+     *
+     */
+    void updatePlaylistTracks(const std::vector<PlaylistTracksOperationData> & operations);
+
+    /** \brief Creates and associates the Artists metadata fields.
+     * \param[in] operations List of playlist data operations to update.
+     *
+     */
+    void createArtists(const std::vector<PlaylistImageOperationData> & operations);
+
+    /** \brief Helper method to check for SQLite execution errors and clean up
+     * a little the code. Returns true on success and false on fail (code != expected).
+     * \param[in] code Result code of an SQLite operation.
+     * \param[in] expectedCode Expected code of the operation.
+     * \param[in] line Source code line of the check.
+     *
+     */
+    bool checkSQLiteError(int code, int expectedCode, int line);
+
     sqlite3             *m_sql3Handle; /** SQLite db handle */
     ProcessConfiguration m_config;     /** process parameters. */
     bool                 m_abort;          /** true to stop the process. */
     QString              m_error;          /** error message or empty if none. */
-
-    struct OperationData
-    {
-        std::filesystem::path path;
-        std::string           imageData;
-        std::string           artist;
-        std::string           album;
-    };
 };
 
 #endif // PROCESSTHREAD_H_

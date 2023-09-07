@@ -28,6 +28,9 @@
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QLabel" name="label">
+       <property name="toolTip">
+        <string>Path to Jellyfin metadata database file, usually &quot;library.db&quot;</string>
+       </property>
        <property name="text">
         <string>Jellyfin Database:</string>
        </property>
@@ -35,6 +38,12 @@
      </item>
      <item>
       <widget class="QLineEdit" name="m_DatabasePath">
+       <property name="toolTip">
+        <string>Path to Jellyfin metadata database file, usually &quot;library.db&quot;</string>
+       </property>
+       <property name="statusTip">
+        <string/>
+       </property>
        <property name="placeholderText">
         <string>library.db</string>
        </property>
@@ -83,6 +92,9 @@
      <property name="enabled">
       <bool>false</bool>
      </property>
+     <property name="toolTip">
+      <string>Metadata information to update.</string>
+     </property>
      <property name="styleSheet">
       <string notr="true">QGroupBox {
     border: 1px solid gray;
@@ -107,6 +119,9 @@ QGroupBox::title {
        <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,0,0">
         <item>
          <widget class="QCheckBox" name="m_playlistImages">
+          <property name="toolTip">
+           <string>Update image metadata in playlist entries.</string>
+          </property>
           <property name="text">
            <string>Playlist images</string>
           </property>
@@ -117,6 +132,9 @@ QGroupBox::title {
         </item>
         <item>
          <widget class="QLabel" name="label_3">
+          <property name="toolTip">
+           <string>Name of the image file to search in the album folder, without the extension.</string>
+          </property>
           <property name="text">
            <string>Image name: </string>
           </property>
@@ -124,6 +142,9 @@ QGroupBox::title {
         </item>
         <item>
          <widget class="QLineEdit" name="m_imageName">
+          <property name="toolTip">
+           <string>Name of the image file to search in the album folder, without the extension.</string>
+          </property>
           <property name="text">
            <string>Frontal</string>
           </property>
@@ -136,6 +157,9 @@ QGroupBox::title {
       </item>
       <item>
        <widget class="QCheckBox" name="m_albumImages">
+        <property name="toolTip">
+         <string>Update image metadata in album entries.</string>
+        </property>
         <property name="text">
          <string>Album images</string>
         </property>
@@ -146,8 +170,24 @@ QGroupBox::title {
       </item>
       <item>
        <widget class="QCheckBox" name="m_artistAndAlbums">
+        <property name="toolTip">
+         <string>Update artist and album name in playlist, albums and tracks.</string>
+        </property>
         <property name="text">
-         <string>Artists and albums (for both playlists and albums)</string>
+         <string>Artist and album name</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="m_trackNumbers">
+        <property name="toolTip">
+         <string>Update track sequence number in tracks metadata.</string>
+        </property>
+        <property name="text">
+         <string>Track numbers</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -159,6 +199,9 @@ QGroupBox::title {
    </item>
    <item>
     <widget class="QGroupBox" name="groupBox">
+     <property name="toolTip">
+      <string>Operations log.</string>
+     </property>
      <property name="styleSheet">
       <string notr="true">QGroupBox {
     border: 1px solid gray;
@@ -173,7 +216,7 @@ QGroupBox::title {
 }</string>
      </property>
      <property name="title">
-      <string>Log</string>
+      <string>Operations log</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
@@ -185,7 +228,7 @@ QGroupBox::title {
          <bool>true</bool>
         </property>
         <property name="placeholderText">
-         <string>No action done.</string>
+         <string>No operation done yet.</string>
         </property>
        </widget>
       </item>
@@ -196,6 +239,9 @@ QGroupBox::title {
     <widget class="QProgressBar" name="m_progressBar">
      <property name="enabled">
       <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>Progress of operations in the database.</string>
      </property>
      <property name="value">
       <number>0</number>
@@ -209,6 +255,9 @@ QGroupBox::title {
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
       <widget class="QPushButton" name="m_aboutButton">
+       <property name="toolTip">
+        <string>About the application...</string>
+       </property>
        <property name="text">
         <string>About...</string>
        </property>
@@ -232,6 +281,9 @@ QGroupBox::title {
        <property name="enabled">
         <bool>false</bool>
        </property>
+       <property name="toolTip">
+        <string>Update the metadata database.</string>
+       </property>
        <property name="text">
         <string>Update DB</string>
        </property>
@@ -239,6 +291,9 @@ QGroupBox::title {
      </item>
      <item>
       <widget class="QPushButton" name="m_quitButton">
+       <property name="toolTip">
+        <string>Exit the application.</string>
+       </property>
        <property name="text">
         <string>Quit</string>
        </property>

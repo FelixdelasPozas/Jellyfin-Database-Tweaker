@@ -162,12 +162,13 @@ void MainDialog::onUpdateButtonPressed()
       config.processImages = m_playlistImages->isChecked();
       config.processArtists = m_artistAndAlbums->isChecked();
       config.processAlbums = m_albumImages->isChecked();
-      config.processTracks = true; // TODO
+      config.processTracks = m_trackNumbers->isChecked();
       config.imageName = m_imageName->text();
 
       m_thread = std::make_shared<ProcessThread>(m_sql3Handle, config, this);
 
       button->setText("Cancel");
+      button->setToolTip("Cancel the update process.");
       m_quitButton->setEnabled(false);
 
       connect(m_thread.get(), SIGNAL(progress(int)), this, SLOT(onProgressUpdated(int)));
@@ -179,6 +180,7 @@ void MainDialog::onUpdateButtonPressed()
     else
     {
       button->setText("Update DB");
+      button->setToolTip("Update the metadata database.");
 
       if(!m_thread) return;
 
