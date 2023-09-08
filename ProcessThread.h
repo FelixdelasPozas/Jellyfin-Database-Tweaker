@@ -37,24 +37,25 @@
  */
 struct ProcessConfiguration
 {
-    bool processImages;    /** true to compute blurhash and insert images in metadata of playlists, false otherwise. */
-    bool processArtists;   /** true to add artist and album metadata to items. */
-    bool processAlbums;    /** true to enter artist. album and image metadata in Album entries. */
-    bool processTracks;    /** true to add item index in tracks entities. */
-    bool processPlaylists; /** true to add tracklist to playlists if empty. */
+    bool processPlaylistImages;    /** true to compute blurhash and insert images in metadata of playlists, false otherwise. */
+    bool processPlaylistTracklist; /** true to add tracklist to playlists if empty. */
+    bool processTracksArtists;     /** true to add artist and album metadata to items. */
+    bool processTracksNumbers;     /** true to add item index in tracks entities. */
+    bool processAlbums;            /** true to enter artist, album and image metadata in Album entries. */
     QString imageName;
 
     ProcessConfiguration()
-    : processImages{true}
-    , processArtists{true}
+    : processPlaylistImages{true}
+    , processPlaylistTracklist{true}
+    , processTracksArtists{true}
+    , processTracksNumbers{true}
     , processAlbums{true}
-    , processTracks{true}
-    , processPlaylists{true}
     {};
 };
 
 /** \struct PlaylistOperationData
- * \brief Contains the necesary data to modify playlist/albums and tracks images and artists .metadata
+ * \brief Contains the necesary data to modify playlist/albums and tracks images and artists metadata.
+ *  Also used for Album operations as the only thing that changes is the path.
  *
  */
 struct PlaylistImageOperationData
@@ -127,6 +128,12 @@ class ProcessThread
     bool isAborted() const
     { return m_abort; }
 
+    /** \brief Returns if the database has been modified.
+     *
+     */
+    bool hasModifiedDB() const
+    { return m_dbModified; }
+
   signals:
     void progress(int);
     void message(const QString &);
@@ -135,11 +142,6 @@ class ProcessThread
     virtual void run();
 
   private:
-    /** \brief Helper method to catch excepctions from the run method.
-     *
-     */
-    void runImplementation();
-
     /** \brief Counts the number of operations to perform in the database.
      *
      */
@@ -151,11 +153,6 @@ class ProcessThread
      */
     unsigned long countSQLiteOperation(const std::string &where_sql);
 
-    /** \brief Counts the number of rows of Albums to update.
-     *
-     */
-    unsigned long countAlbumsToUpdate();
-
     /** \brief Generate Playlist images operations data
      *
      */
@@ -165,6 +162,12 @@ class ProcessThread
      *
      */
     std::vector<TrackNumberOperationData> generateTracksNumberOperationData();
+
+    /** \brief Generate Albums operations data.
+     * \param[in] playlistOps Playlist images metadata operations to avoid recomputing the same data.
+     *
+     */
+    std::vector<PlaylistImageOperationData> generateAlbumsOperationsData(const std::vector<PlaylistImageOperationData> &playlistOps);
 
     /** \brief Generata Playlist tracks operations data.
      *
@@ -195,12 +198,6 @@ class ProcessThread
      */
     void updatePlaylistTracks(const std::vector<PlaylistTracksOperationData> & operations);
 
-    /** \brief Creates and associates the Artists metadata fields.
-     * \param[in] operations List of playlist data operations to update.
-     *
-     */
-    void createArtists(const std::vector<PlaylistImageOperationData> & operations);
-
     /** \brief Helper method to check for SQLite execution errors and clean up
      * a little the code. Returns true on success and false on fail (code != expected).
      * \param[in] code Result code of an SQLite operation.
@@ -210,10 +207,30 @@ class ProcessThread
      */
     bool checkSQLiteError(int code, int expectedCode, int line);
 
+    /** \brief Helper method to check the progress value and sends a progress signal.
+     *
+     */
+    void checkProgress(const unsigned long opNumber);
+
+    /** \brief Helper method that parses the given text and returns the artist and album
+     * text as strings. In the pair the first is artist, second is album.
+     * \param[in] text Text string of the folder containing the audio files.
+     *
+     */
+    std::pair<std::string, std::string> artistAndAlbumMetadata(const std::wstring &text) const;
+
+    /** \brief Helper method to read the image file in the given path and returns the computed
+     * blurhash string.
+     * \param[in] path Folder contaning the audio and image files.
+     *
+     */
+    std::string albumBlurhash(const std::filesystem::path &path);
+
     sqlite3             *m_sql3Handle; /** SQLite db handle */
     ProcessConfiguration m_config;     /** process parameters. */
-    bool                 m_abort;          /** true to stop the process. */
-    QString              m_error;          /** error message or empty if none. */
+    QString              m_error;      /** error message or empty if none. */
+    bool                 m_abort;      /** true to stop the process. */
+    bool                 m_dbModified; /** true if database was modified and false otherwise. */
 };
 
 #endif // PROCESSTHREAD_H_

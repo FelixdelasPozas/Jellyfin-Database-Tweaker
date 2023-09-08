@@ -55,9 +55,9 @@ int main(int argc, char *argv[])
   if (!guard.create(1))
   {
     QMessageBox msgBox;
-    msgBox.setWindowIcon(QIcon(":/Mandelbrot/cpu.ico"));
+    msgBox.setWindowIcon(QIcon(":JellyfinDB/jellyfin-sql-tweak.svg"));
     msgBox.setIcon(QMessageBox::Warning);
-    msgBox.setText("Mandelbrot Benchmark is already running!");
+    msgBox.setText("Jellyfin Database Tweaker is already running!");
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.exec();
     exit(0);

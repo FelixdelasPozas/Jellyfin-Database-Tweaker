@@ -29,13 +29,14 @@
 #include <QTextBlock>
 #include <QSettings>
 #include <QDir>
-#include <QtWinExtras/QWinTaskbarProgress>
 #include <QDateTime>
+#include <QtWinExtras/QWinTaskbarProgress>
 
 // C++
 #include <filesystem>
 #include <mutex>
-#include <iostream>
+// For debug
+//#include <iostream>
 
 const std::string TABLE_NAME = "TypedBaseItems";
 
@@ -57,8 +58,8 @@ void sqlite3_log_callback(void *ptr, int iErrCode, const char *zMsg)
   auto obj = reinterpret_cast<MainDialog *>(ptr);
   if(obj && iErrCode != SQLITE_OK)
   {
-    obj->log(QString("sqlite3 log: ") + QString::fromLatin1(zMsg));
-    std::cerr << "SQLITE3 ERROR: " << zMsg << std::endl;
+    obj->log(QString("<span style=\" color:#ff0000;\">sqlite3 log: %1</span>").arg(QString::fromLatin1(zMsg)));
+    //std::cerr << "SQLITE3 ERROR: " << zMsg << std::endl;
   }
 }
 
@@ -89,7 +90,10 @@ MainDialog::~MainDialog()
   if(m_thread)
   {
     m_thread->abort();
-    m_thread->wait();
+    m_thread->wait(1000);
+    if(m_thread->isRunning()) m_thread->terminate();
+
+    m_thread = nullptr;
   }
 
   closeDatabase();
@@ -159,10 +163,11 @@ void MainDialog::onUpdateButtonPressed()
       if(m_thread) return;
 
       ProcessConfiguration config;
-      config.processImages = m_playlistImages->isChecked();
-      config.processArtists = m_artistAndAlbums->isChecked();
-      config.processAlbums = m_albumImages->isChecked();
-      config.processTracks = m_trackNumbers->isChecked();
+      config.processPlaylistImages = m_playlistImages->isChecked();
+      config.processPlaylistTracklist = m_trackList->isChecked();
+      config.processTracksArtists = m_artistAndAlbums->isChecked();
+      config.processTracksNumbers = m_trackNumbers->isChecked();
+      config.processAlbums = m_albumMetadata->isChecked();
       config.imageName = m_imageName->text();
 
       m_thread = std::make_shared<ProcessThread>(m_sql3Handle, config, this);
@@ -176,15 +181,28 @@ void MainDialog::onUpdateButtonPressed()
       connect(m_thread.get(), SIGNAL(message(const QString &)), this, SLOT(log(const QString &)), Qt::BlockingQueuedConnection);
 
       m_thread->start();
+      m_metadata->setEnabled(false);
     }
     else
     {
+      QApplication::changeOverrideCursor(Qt::WaitCursor);
+
       button->setText("Update DB");
       button->setToolTip("Update the metadata database.");
 
       if(!m_thread) return;
 
-      if(m_thread->isRunning()) m_thread->abort();
+      if(m_thread->isRunning())
+      {
+        m_thread->abort();
+        m_thread->wait(1000);
+      }
+      if(m_thread->isRunning()) m_thread->terminate();
+
+      m_thread->wait(1000);
+      m_metadata->setEnabled(true);
+
+      QApplication::restoreOverrideCursor();
     }
   }
 }
@@ -220,14 +238,14 @@ void MainDialog::onProgressUpdated(int value)
 //---------------------------------------------------------------
 void MainDialog::onProcessThreadFinished()
 {
+  if(m_thread->isAborted())
+  {
+    log(QString("Database update process aborted! Database %1 been modified.").arg(m_thread->hasModifiedDB() ? "HAS":"HAS NOT"));
+  }
+
   if(m_thread && !m_thread->error().isEmpty() && !m_thread->isAborted())
   {
     showErrorMessage("Error processing data", m_thread->error());
-  }
-
-  if(m_thread->isAborted())
-  {
-    log("Database update aborted!");
   }
 
   m_thread = nullptr;
@@ -242,11 +260,15 @@ void MainDialog::onFileButtonPressedImplementation()
 {
   if(!m_DatabasePath->text().isEmpty())
   {
-    const QFileInfo fInfo{m_DatabasePath->text()};
-    if(fInfo.exists())
-      currentPath = fInfo.path();
-    else
+    QFileInfo fInfo{m_DatabasePath->text()};
+
+    while(!fInfo.exists() && !fInfo.isRoot())
+      fInfo = QFileInfo{fInfo.path()};
+
+    if(fInfo.isRoot())
       currentPath = QDir::currentPath();
+    else
+      currentPath = fInfo.absoluteFilePath();
   }
 
   auto qdbFile = QFileDialog::getOpenFileName(this, "Select Jellyfin database",
@@ -254,10 +276,13 @@ void MainDialog::onFileButtonPressedImplementation()
                                                nullptr, QFileDialog::ReadOnly);
   if(qdbFile.isEmpty()) return;
 
+  QApplication::changeOverrideCursor(Qt::WaitCursor);
+
   std::filesystem::path dbFile(qdbFile.toStdWString());
 
   if(!std::filesystem::exists(dbFile))
   {
+    QApplication::restoreOverrideCursor();
     showErrorMessage("Error opening database", QString("Unable to open file: '%1'").arg(qdbFile));
     return;
   }
@@ -277,12 +302,14 @@ void MainDialog::onFileButtonPressedImplementation()
 
   if(std::filesystem::exists(backupDb))
   {
+    QApplication::restoreOverrideCursor();
     showErrorMessage("Error making backup", QString("Unable to backup file: '%1' to '%2'. Destination file exists!").arg(qdbFile).arg(qBackupDb));
     return;
   }
 
   if(!std::filesystem::copy_file(dbFile, backupDb))
   {
+    QApplication::restoreOverrideCursor();
     showErrorMessage("Error making backup", QString("Unable to backup file: '%1' to '%2'. Unable to copy.").arg(qdbFile).arg(qBackupDb));
     return;
   }
@@ -293,6 +320,7 @@ void MainDialog::onFileButtonPressedImplementation()
   auto result = sqlite3_open(dbFile.string().c_str(), &m_sql3Handle);
   if(result != SQLITE_OK)
   {
+    QApplication::restoreOverrideCursor();
     const auto msg = QString("Unable to open database: '%1'. SQLite3 error: %2").arg(qdbFile)
                          .arg(QString::fromLatin1(sqlite3_errstr(result)));
     showErrorMessage("Error opening database", msg);
@@ -302,12 +330,11 @@ void MainDialog::onFileButtonPressedImplementation()
     return;
   }
 
-  log(QString("Database opened."));
-
   sqlite3_stmt *stmt;
   result = sqlite3_prepare_v2(m_sql3Handle, "SELECT * FROM sqlite_master where type='table'", -1, &stmt, nullptr);
   if (result != SQLITE_OK)
   {
+    QApplication::restoreOverrideCursor();
     const auto msg = QString("Unable to make SQL statement. SQLite3 error: %1").arg(QString::fromLatin1(sqlite3_errstr(result)));
     showErrorMessage("Error opening database", msg);
 
@@ -330,13 +357,18 @@ void MainDialog::onFileButtonPressedImplementation()
 
   if (result != SQLITE_DONE)
   {
+    QApplication::restoreOverrideCursor();
     const auto msg = QString("Unable to finish SQL statement. SQLite3 error: %1").arg(QString::fromLatin1(sqlite3_errstr(result)));
     showErrorMessage("Error opening database", msg);
+    sqlite3_finalize(stmt);
+    return;
   }
+
   sqlite3_finalize(stmt);
 
   if(!hasTable)
   {
+    QApplication::restoreOverrideCursor();
     showErrorMessage("Error opening database", QString("Database: '%1' doesn't contain the correct tables.").arg(qdbFile));
 
     closeDatabase();
@@ -344,7 +376,7 @@ void MainDialog::onFileButtonPressedImplementation()
     return;
   }
 
-  log(QString("Database contains the correct tables."));
+  log(QString("Database contains the correct tables. Database opened."));
 
   // Success, modify UI
   m_DatabasePath->setText(qdbFile);

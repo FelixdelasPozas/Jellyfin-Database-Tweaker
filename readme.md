@@ -9,18 +9,51 @@ Jellyfin Metadata Database Tweaker
 - [Repository information](#repository-information)
 
 # Description
-Quick and simple tool to modify the metadata database of a Jellyfin server (that is, to **my** liking), mainly to 
-insert image, artist and albums metadata to existing items. This tool doesn't insert new items in the database, 
-just fills the missing information. 
+Simple tool to modify the metadata database of a [Jellyfin](https://jellyfin.org/) server (that is, to **my** 
+liking), mainly to insert image, artist and albums metadata and correct playlist contents to existing items. 
+This tool doesn't insert new items in the database, just fills the missing information for audio albums, tracks
+and playlists metadata. 
 
 It's not recomended to do this and is **your** responsibility if you break your database using this application. I made 
 it because I don't want to change the organization of my music collection for Jellyfin to "index it correctly", and I
 want to update the information quickly every time I add more music to the collection.
 
+[Jellyfin expects the music to be organized](https://github.com/jellyfin-archive/jellyfin-docs/blob/master/general/server/media/music.md) like this:
+```
+/Music
+    /Artist
+        /Album
+            /Disc 1
+                01 - Song.mp3
+                02 - Song.mp3
+            /Disc 2
+                01 - Song.mp3
+                02 - Song.mp3
+            ...
+            cover.jpg
+```         
+This tool expects this format:
+```
+/Music
+    /Artist - Album
+        01 - Song.mp3
+        02 - Song.mp3
+        ...
+        Frontal.jpg
+```            
+Also the filenames of the tracks are expected to follow this rule `%disc number%-%track_number% - Track title.mp3`. 
+Disc number being absent if it's just one disc. Both fields are supposed to be zero-filled to the total of discs and
+tracks (that is, 001 for a disc with more than 100 tracks).  
+
+Thanks to the people of the [Jellyfin](https://jellyfin.org/) project for making such a great program!
+
 ## Options
 Several options can be configured:
-* Modify only images in albums/playlist entities, with the name of the image to search in the folder.
-* Add artist and album metadata in all songs, playlist and album entries.
+* Playlist metadata: modify images with computed blurhash and add artist and album information.
+* Playlist metadata: tracklist JSON content.
+* Albums metadata: add artist and album information.
+* Track metadata: sequential number in album.
+* Track metadata: add artist and album information.
 
 # Compilation requirements
 ## To build the tool:
@@ -31,9 +64,11 @@ Several options can be configured:
 The following libraries are required:
 * [Qt 5 opensource framework](http://www.qt.io/).
 
-The tool also requires of BlurHash, stb_image and SQLite 3 libraries but those are included in the **external** folder in the
-source code. stb_image code needed to be modified to allow UTF-8 filename strings with Mingw64 compiler as it wrongly uses
-_MSC_VER_ macro to identify a Windows(tm) machine. 
+The tool also requires of [BlurHash](https://github.com/Nheko-Reborn/blurhash), 
+[stb_image](https://github.com/nothings/stb/blob/master/stb_image.h) and [SQLite 3](https://github.com/sqlite/sqlite) 
+libraries but those are included in the **external** folder in the source code. stb_image code needed to be 
+modified to allow UTF-8 filename strings with Mingw64 compiler as it wrongly uses `_MSC_VER_` macro to identify
+a Windows(tm) machine and that excludes compilers others than Microsoft one.
 
 # Install
 There won't be binaries in the releases. If you want to use it you'll probably need to adapt it to your needs 
@@ -50,14 +85,13 @@ Simple main dialog.
 
 **Version**: 1.0.0
 
-**Status**: Probably will do some changes in the future to add metadata instead of just modifying the existing one. Add artists
-and correctly link albums to songs. 
+**Status**: finished. 
 
-**cloc statistics**
+**cloc statistics** (excluding code in 'external' directory)
 
-| Language                     |files          |blank        |comment           |code  |
-|:-----------------------------|--------------:|------------:|-----------------:|-----:|
-| C++                          |   8           | 438         |   272            | 1681 |
-| C/C++ Header                 |   7           | 200         |   604            |  336 |
-| CMake                        |   1           |  18         |    14            |   65 |
-| **Total**                    | **16**        | **656**     | **890**          | **2082** |
+| Language                 |files     |blank    |comment   |code      |
+|:-------------------------|---------:|--------:|---------:|---------:|
+| C++                      |   4      | 290     |   149    | 1108     |
+| C/C++ Header             |   3      |  73     |   218    |  140     |
+| CMake                    |   1      |  18     |    15    |   64     |
+| **Total**                | **8**    | **381** | **382**  | **1312** |

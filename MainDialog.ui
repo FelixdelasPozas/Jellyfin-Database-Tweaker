@@ -123,7 +123,7 @@ QGroupBox::title {
            <string>Update image metadata in playlist entries.</string>
           </property>
           <property name="text">
-           <string>Playlist images</string>
+           <string>Playlist metadata: images</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -156,12 +156,22 @@ QGroupBox::title {
        </layout>
       </item>
       <item>
-       <widget class="QCheckBox" name="m_albumImages">
+       <widget class="QCheckBox" name="m_trackList">
+        <property name="text">
+         <string>Playlist metadata: JSON track list</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="m_albumMetadata">
         <property name="toolTip">
          <string>Update image metadata in album entries.</string>
         </property>
         <property name="text">
-         <string>Album images</string>
+         <string>Album metadata: image, artist and album name.</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -174,7 +184,7 @@ QGroupBox::title {
          <string>Update artist and album name in playlist, albums and tracks.</string>
         </property>
         <property name="text">
-         <string>Artist and album name</string>
+         <string>Music Tracks metadata: image, artist and album name.</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -187,7 +197,7 @@ QGroupBox::title {
          <string>Update track sequence number in tracks metadata.</string>
         </property>
         <property name="text">
-         <string>Track numbers</string>
+         <string>Music Tracks metadata: track numbers</string>
         </property>
         <property name="checked">
          <bool>true</bool>
