@@ -79,7 +79,7 @@ The latest release is available from the [releases]() page.
 # Screenshots
 Simple main dialog. 
 
-![maindialog]()
+![maindialog](https://user-images.githubusercontent.com/12167134/266745969-003b7a45-4934-45de-933f-f6a0bd26b5b0.png)
 
 # Repository information
 
