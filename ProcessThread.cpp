@@ -29,7 +29,7 @@
 #include <set>
 #include <cassert>
 // For debug
-#include <iostream>
+//#include <iostream>
 
 // Qt
 #include <QImage>
@@ -922,6 +922,21 @@ std::string ProcessThread::albumBlurhash(const std::filesystem::path &path)
     }
   }
 
+  // If Image is empty, found a "Default.png" in the parent directories.
+  auto backtracePath = path;
+  while(imagePath.empty() && backtracePath != backtracePath.root_path())
+  {
+    auto frontalPath = backtracePath;
+    frontalPath /= "Default.png";
+    if(std::filesystem::exists(frontalPath))
+    {
+      imagePath = frontalPath;
+      break;
+    }
+
+    backtracePath = backtracePath.parent_path();
+  }
+
   if(!imagePath.empty())
   {
     int width, height, n;
@@ -969,6 +984,11 @@ std::string ProcessThread::albumBlurhash(const std::filesystem::path &path)
       // std::cout << result << std::endl;
       stbi_image_free(imageData);
     }
+  }
+  else
+  {
+    emit message(QString("<span style=\" color:#ff0000;\">Unable to assign image to <b>'%1'</b>.</span>")
+                 .arg(QString::fromStdWString(path.wstring())));
   }
 
   return result;

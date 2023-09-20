@@ -40,10 +40,12 @@ This tool expects this format:
         02 - Song.mp3
         ...
         Frontal.jpg
+	Default.png                    
 ```            
 Also the filenames of the tracks are expected to follow this rule `%disc number%-%track_number% - Track title.mp3`. 
 Disc number being absent if it's just one disc. Both fields are supposed to be zero-filled to the total of discs and
-tracks (that is, 001 for a disc with more than 100 tracks).  
+tracks (that is, 001 for a disc with more than 100 tracks). The `Default.png` image is only used if none is found in the
+album directory instead of letting the album and artist without one.   
 
 Thanks to the people of the [Jellyfin](https://jellyfin.org/) project for making such a great program!
 
@@ -83,7 +85,7 @@ Simple main dialog.
 
 # Repository information
 
-**Version**: 1.0.0
+**Version**: 1.0.1
 
 **Status**: finished. 
 
@@ -91,7 +93,7 @@ Simple main dialog.
 
 | Language                 |files     |blank    |comment   |code      |
 |:-------------------------|---------:|--------:|---------:|---------:|
-| C++                      |   4      | 290     |   149    | 1108     |
+| C++                      |   4      | 292     |   151    | 1124     |
 | C/C++ Header             |   3      |  73     |   218    |  140     |
 | CMake                    |   1      |  18     |    15    |   64     |
-| **Total**                | **8**    | **381** | **382**  | **1312** |
+| **Total**                | **8**    | **383** | **384**  | **1328** |
