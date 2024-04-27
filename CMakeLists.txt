@@ -1,9 +1,9 @@
 #
 # Jellyfin Database Tweaker CMake configuration.
 #
-project(JellyfinDBTweaker)
-
 cmake_minimum_required (VERSION 3.0.0)
+
+project(JellyfinDBTweaker)
 
 cmake_policy(SET CMP0071 NEW)
 set(CMAKE_CXX_STANDARD 20)
