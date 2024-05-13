@@ -39,9 +39,26 @@ This tool expects this format:
         01 - Song.mp3
         02 - Song.mp3
         ...
-        Frontal.jpg
+		Frontal.jpg
+		
 	Default.png                    
 ```            
+
+Or, if multiple discs:
+```
+/Music
+    /Artist - Album
+        1-01 - Song.mp3
+        1-02 - Song.mp3
+        ...
+		2-01 - Song.mp3
+		2-02 - Song.mp3		
+		...
+		Frontal.jpg
+		
+	Default.png                    
+```     
+       
 Also the filenames of the tracks are expected to follow this rule `%disc number%-%track_number% - Track title.mp3`. 
 Disc number being absent if it's just one disc. Both fields are supposed to be zero-filled to the total of discs and
 tracks (that is, 001 for a disc with more than 100 tracks). The `Default.png` image is only used if none is found in the
