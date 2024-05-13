@@ -39,9 +39,9 @@ This tool expects this format:
         01 - Song.mp3
         02 - Song.mp3
         ...
-		Frontal.jpg
-		
-	Default.png                    
+        Frontal.jpg
+
+    Default.png                    
 ```            
 
 Or, if multiple discs:
@@ -51,12 +51,12 @@ Or, if multiple discs:
         1-01 - Song.mp3
         1-02 - Song.mp3
         ...
-		2-01 - Song.mp3
-		2-02 - Song.mp3		
-		...
-		Frontal.jpg
-		
-	Default.png                    
+        2-01 - Song.mp3
+        2-02 - Song.mp3		
+        ...
+        Frontal.jpg
+
+    Default.png                    
 ```     
        
 Also the filenames of the tracks are expected to follow this rule `%disc number%-%track_number% - Track title.mp3`. 
