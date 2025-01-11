@@ -29,6 +29,7 @@
 
 // C++
 #include <iostream>
+#include <filesystem>
 
 //-----------------------------------------------------------------
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
@@ -63,7 +64,18 @@ int main(int argc, char *argv[])
     exit(0);
   }
 
-  MainDialog dialog;
+  std::filesystem::path dbPath;
+
+  if(argc > 1 && QString(argv[1]).compare("--db") == 0)
+  {
+    auto filePath = std::filesystem::path(argv[2]);
+    if(std::filesystem::exists(filePath) && std::filesystem::is_regular_file(filePath))
+    {
+      dbPath = filePath;
+    }
+  }
+
+  MainDialog dialog(dbPath);
   dialog.show();
 
   return app.exec();

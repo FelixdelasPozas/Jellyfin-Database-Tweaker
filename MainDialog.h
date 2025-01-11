@@ -32,6 +32,7 @@
 
 // C++
 #include <memory>
+#include <filesystem>
 
 class ProcessThread;
 
@@ -50,7 +51,7 @@ class MainDialog
      * \param[in] f Dialog flags.
      *
      */
-    explicit MainDialog(QWidget *p = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    explicit MainDialog(std::filesystem::path dbPath = std::filesystem::path(), QWidget *p = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
 
     /** \brief MainDialog class virtual destructor.
      *
@@ -95,6 +96,11 @@ class MainDialog
      */
     void onProcessThreadFinished();
 
+    /** \brief Executes the update of the given database passed as argument.
+     *
+     */
+    void automateProcess();
+
   protected:
     virtual void showEvent(QShowEvent *e) override final;
 
@@ -134,6 +140,7 @@ class MainDialog
     sqlite3                       *m_sql3Handle;    /** SQLite db handle */
     std::shared_ptr<ProcessThread> m_thread;        /** Thread to process database. */
     QWinTaskbarButton             *m_taskBarButton; /** taskbar progress widget. */
+    std::filesystem::path          m_dbPath;        /** Database path, or empty. */
 };
 
 #endif // MAINDIALOG_H_

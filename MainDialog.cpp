@@ -31,6 +31,8 @@
 #include <QDir>
 #include <QDateTime>
 #include <QtWinExtras/QWinTaskbarProgress>
+#include <QTimer>
+#include <QApplication>
 
 // C++
 #include <filesystem>
@@ -41,6 +43,7 @@
 const std::string TABLE_NAME = "TypedBaseItems";
 
 QString currentPath = QDir::currentPath();
+bool automate = false;
 
 std::mutex log_mutex;
 
@@ -64,13 +67,16 @@ void sqlite3_log_callback(void *ptr, int iErrCode, const char *zMsg)
 }
 
 //---------------------------------------------------------------
-MainDialog::MainDialog(QWidget *p, Qt::WindowFlags f)
+MainDialog::MainDialog(std::filesystem::path dbPath, QWidget *p, Qt::WindowFlags f)
 : QDialog(p,f)
 , m_sql3Handle{nullptr}
 , m_thread{nullptr}
 , m_taskBarButton{nullptr}
+, m_dbPath{dbPath}
 {
   setupUi(this);
+
+  automate = !m_dbPath.empty();
 
   connectSignals();
 
@@ -132,6 +138,26 @@ void MainDialog::onFileButtonPressed()
 {
   try
   {
+    if(!m_DatabasePath->text().isEmpty())
+    {
+      QFileInfo fInfo{m_DatabasePath->text()};
+
+      while(!fInfo.exists() && !fInfo.isRoot())
+        fInfo = QFileInfo{fInfo.path()};
+
+      if(fInfo.isRoot())
+        currentPath = QDir::currentPath();
+      else
+        currentPath = fInfo.absoluteFilePath();
+    }
+
+    auto qdbFile = QFileDialog::getOpenFileName(this, "Select Jellyfin database",
+                                                currentPath, tr("Jellyfin database (*.db)"),
+                                                nullptr, QFileDialog::ReadOnly);
+    
+    if(qdbFile.isEmpty()) return;
+    m_dbPath = std::filesystem::path(qdbFile.toStdWString());
+
     onFileButtonPressedImplementation();
   }
   catch(const std::exception &e)
@@ -248,46 +274,34 @@ void MainDialog::onProcessThreadFinished()
     showErrorMessage("Error processing data", m_thread->error());
   }
 
+  const bool continueAutomation = !m_thread->isAborted() && m_thread->error().isEmpty();
+
   m_thread = nullptr;
 
   m_updateButton->setText("Update DB");
   m_quitButton->setEnabled(true);
   m_progressBar->setValue(0);
+
+  if(automate && continueAutomation)
+    QApplication::quit();
 }
 
 //---------------------------------------------------------------
 void MainDialog::onFileButtonPressedImplementation()
 {
-  if(!m_DatabasePath->text().isEmpty())
-  {
-    QFileInfo fInfo{m_DatabasePath->text()};
-
-    while(!fInfo.exists() && !fInfo.isRoot())
-      fInfo = QFileInfo{fInfo.path()};
-
-    if(fInfo.isRoot())
-      currentPath = QDir::currentPath();
-    else
-      currentPath = fInfo.absoluteFilePath();
-  }
-
-  auto qdbFile = QFileDialog::getOpenFileName(this, "Select Jellyfin database",
-                                               currentPath, tr("Jellyfin database (*.db)"),
-                                               nullptr, QFileDialog::ReadOnly);
-  if(qdbFile.isEmpty()) return;
-
   QApplication::changeOverrideCursor(Qt::WaitCursor);
 
-  std::filesystem::path dbFile(qdbFile.toStdWString());
+  std::filesystem::path dbFile = m_dbPath;
+  const auto qdbPath = QString::fromStdWString(dbFile.wstring());
 
   if(!std::filesystem::exists(dbFile))
   {
     QApplication::restoreOverrideCursor();
-    showErrorMessage("Error opening database", QString("Unable to open file: '%1'").arg(qdbFile));
+    showErrorMessage("Error opening database", QString("Unable to open file: '%1'").arg(qdbPath));
     return;
   }
 
-  log(QString("Selected database: ") + qdbFile);
+  log(QString("Selected database: ") + qdbPath);
 
   std::filesystem::path backupDb = dbFile.parent_path();
   currentPath = QString::fromStdString(backupDb.string());
@@ -303,14 +317,14 @@ void MainDialog::onFileButtonPressedImplementation()
   if(std::filesystem::exists(backupDb))
   {
     QApplication::restoreOverrideCursor();
-    showErrorMessage("Error making backup", QString("Unable to backup file: '%1' to '%2'. Destination file exists!").arg(qdbFile).arg(qBackupDb));
+    showErrorMessage("Error making backup", QString("Unable to backup file: '%1' to '%2'. Destination file exists!").arg(qdbPath).arg(qBackupDb));
     return;
   }
 
   if(!std::filesystem::copy_file(dbFile, backupDb))
   {
     QApplication::restoreOverrideCursor();
-    showErrorMessage("Error making backup", QString("Unable to backup file: '%1' to '%2'. Unable to copy.").arg(qdbFile).arg(qBackupDb));
+    showErrorMessage("Error making backup", QString("Unable to backup file: '%1' to '%2'. Unable to copy.").arg(qdbPath).arg(qBackupDb));
     return;
   }
 
@@ -321,7 +335,7 @@ void MainDialog::onFileButtonPressedImplementation()
   if(result != SQLITE_OK)
   {
     QApplication::restoreOverrideCursor();
-    const auto msg = QString("Unable to open database: '%1'. SQLite3 error: %2").arg(qdbFile)
+    const auto msg = QString("Unable to open database: '%1'. SQLite3 error: %2").arg(qdbPath)
                          .arg(QString::fromLatin1(sqlite3_errstr(result)));
     showErrorMessage("Error opening database", msg);
 
@@ -369,7 +383,7 @@ void MainDialog::onFileButtonPressedImplementation()
   if(!hasTable)
   {
     QApplication::restoreOverrideCursor();
-    showErrorMessage("Error opening database", QString("Database: '%1' doesn't contain the correct tables.").arg(qdbFile));
+    showErrorMessage("Error opening database", QString("Database: '%1' doesn't contain the correct tables.").arg(qdbPath));
 
     closeDatabase();
     std::filesystem::remove(backupDb);
@@ -379,12 +393,14 @@ void MainDialog::onFileButtonPressedImplementation()
   log(QString("Database contains the correct tables. Database opened."));
 
   // Success, modify UI
-  m_DatabasePath->setText(qdbFile);
+  m_DatabasePath->setText(qdbPath);
   m_DatabasePath->setEnabled(false);
   m_openDBButton->setEnabled(false);
   m_progressBar->setEnabled(true);
   m_metadata->setEnabled(true);
   m_updateButton->setEnabled(true);
+
+  if(automate) m_updateButton->click();
 }
 
 //---------------------------------------------------------------
@@ -444,4 +460,16 @@ void MainDialog::showEvent(QShowEvent* e)
   m_taskBarButton->progress()->setRange(0, 100);
   m_taskBarButton->progress()->setVisible(true);
   m_taskBarButton->progress()->setValue(0);
+
+  if(automate)
+  {
+    QTimer::singleShot(0, this, SLOT(automateProcess()));
+  }
+}
+
+//---------------------------------------------------------------
+void MainDialog::automateProcess()
+{
+  m_DatabasePath->setText(QString::fromStdWString(m_dbPath.wstring()));
+  onFileButtonPressedImplementation();
 }
