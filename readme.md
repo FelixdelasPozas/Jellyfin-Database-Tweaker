@@ -93,7 +93,7 @@ a Windows(tm) machine and that excludes compilers others than Microsoft one.
 There won't be binaries in the releases. If you want to use it you'll probably need to adapt it to your needs 
 and compile it yourself, because this is rather specific to the organization of my own music collection. 
 
-The latest release is available from the [releases]() page. 
+The source code of the latest release is available from the [releases](https://github.com/FelixdelasPozas/Jellyfin-Database-Tweaker/releases) page. 
 
 # Screenshots
 Simple main dialog. 
