@@ -31,8 +31,8 @@ extern "C" {
 #include <sqlite3/sqlite3.h>
 }
 
-const QString AboutDialog::VERSION = QString("version 1.1.0");
-const QString COPYRIGHT{"Copyright (c) %1 Félix de las Pozas Álvarez"};
+const QString AboutDialog::VERSION = QString("version 1.2.0");
+const QString COPYRIGHT{"Copyright (c) 2024-%1 Félix de las Pozas Álvarez"};
 
 //-----------------------------------------------------------------
 AboutDialog::AboutDialog(QWidget *parent, Qt::WindowFlags flags)

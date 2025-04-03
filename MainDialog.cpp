@@ -21,6 +21,7 @@
 #include <MainDialog.h>
 #include <AboutDialog.h>
 #include <ProcessThread.h>
+#include <QTaskBarButton/QTaskBarButton.h>
 
 // Qt
 #include <QFileDialog>
@@ -30,9 +31,9 @@
 #include <QSettings>
 #include <QDir>
 #include <QDateTime>
-#include <QtWinExtras/QWinTaskbarProgress>
 #include <QTimer>
 #include <QApplication>
+#include <QStyleFactory>
 
 // C++
 #include <filesystem>
@@ -71,12 +72,18 @@ MainDialog::MainDialog(std::filesystem::path dbPath, QWidget *p, Qt::WindowFlags
 : QDialog(p,f)
 , m_sql3Handle{nullptr}
 , m_thread{nullptr}
-, m_taskBarButton{nullptr}
+, m_taskBarButton{this}
 , m_dbPath{dbPath}
 {
   setupUi(this);
 
+  m_progressBar->setStyle(QStyleFactory::create("windowsvista"));
+
   automate = !m_dbPath.empty();
+  m_taskBarButton.setMaximum(100);
+  m_taskBarButton.setMinimum(100);
+  m_taskBarButton.setState(QTaskBarButton::State::Invisible);
+  m_taskBarButton.setValue(QTaskBarButton::State::Invisible);
 
   connectSignals();
 
@@ -107,8 +114,6 @@ MainDialog::~MainDialog()
   sqlite3_shutdown();
 
   saveSettings();
-
-  m_taskBarButton->deleteLater();
 }
 
 //---------------------------------------------------------------
@@ -258,7 +263,13 @@ void MainDialog::closeDatabase()
 void MainDialog::onProgressUpdated(int value)
 {
   m_progressBar->setValue(value);
-  m_taskBarButton->progress()->setValue(value);
+  const QTaskBarButton::State tbState = m_taskBarButton.state();
+  const QTaskBarButton::State state = (value == 0) ? QTaskBarButton::State::Invisible:QTaskBarButton::State::Normal;
+
+  if(tbState != state)
+    m_taskBarButton.setState(state);
+
+  m_taskBarButton.setValue(value);
 }
 
 //---------------------------------------------------------------
@@ -454,12 +465,6 @@ void MainDialog::loadSettings()
 void MainDialog::showEvent(QShowEvent* e)
 {
   QDialog::showEvent(e);
-
-  m_taskBarButton = new QWinTaskbarButton(this);
-  m_taskBarButton->setWindow(this->windowHandle());
-  m_taskBarButton->progress()->setRange(0, 100);
-  m_taskBarButton->progress()->setVisible(true);
-  m_taskBarButton->progress()->setValue(0);
 
   if(automate)
   {

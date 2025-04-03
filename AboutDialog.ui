@@ -37,7 +37,7 @@
        <item>
         <spacer name="horizontalSpacer">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Orientation::Horizontal</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -65,7 +65,7 @@
           <bool>true</bool>
          </property>
          <property name="alignment">
-          <set>Qt::AlignCenter</set>
+          <set>Qt::AlignmentFlag::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -75,7 +75,6 @@
           <widget class="QLabel" name="label_2">
            <property name="font">
             <font>
-             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>
@@ -83,7 +82,7 @@
             <string>Jellyfin Database Tweaker</string>
            </property>
            <property name="alignment">
-            <set>Qt::AlignCenter</set>
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -93,7 +92,7 @@
             <string>version 1.0.0</string>
            </property>
            <property name="alignment">
-            <set>Qt::AlignCenter</set>
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -103,7 +102,7 @@
             <string>Copyright (c) 2016 Félix de las Pozas Álvarez</string>
            </property>
            <property name="alignment">
-            <set>Qt::AlignCenter</set>
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -113,7 +112,7 @@
             <string>Compiled on</string>
            </property>
            <property name="alignment">
-            <set>Qt::AlignCenter</set>
+            <set>Qt::AlignmentFlag::AlignCenter</set>
            </property>
           </widget>
          </item>
@@ -122,7 +121,7 @@
        <item>
         <spacer name="horizontalSpacer_2">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Orientation::Horizontal</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -137,7 +136,7 @@
      <item>
       <widget class="Line" name="line">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
       </widget>
      </item>
@@ -145,7 +144,6 @@
       <widget class="QGroupBox" name="groupBox">
        <property name="font">
         <font>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -166,7 +164,7 @@ QGroupBox::title {
         <string>Powered by</string>
        </property>
        <property name="alignment">
-        <set>Qt::AlignHCenter|Qt::AlignTop</set>
+        <set>Qt::AlignmentFlag::AlignHCenter|Qt::AlignmentFlag::AlignTop</set>
        </property>
        <property name="flat">
         <bool>false</bool>
@@ -202,7 +200,6 @@ QGroupBox::title {
              <widget class="QLabel" name="label_26">
               <property name="font">
                <font>
-                <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
@@ -211,7 +208,7 @@ QGroupBox::title {
 Qt Framework</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignmentFlag::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -221,7 +218,7 @@ Qt Framework</string>
                <string>version 5.9.0</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignmentFlag::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -233,7 +230,7 @@ Qt Framework</string>
              <string>&lt;a href=&quot;http://www.qt.io/&quot;&gt;http://www.qt.io/&lt;/a&gt;</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignCenter</set>
+             <set>Qt::AlignmentFlag::AlignCenter</set>
             </property>
             <property name="openExternalLinks">
              <bool>true</bool>
@@ -245,7 +242,7 @@ Qt Framework</string>
         <item>
          <widget class="Line" name="line_2">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
@@ -279,7 +276,6 @@ Qt Framework</string>
              <widget class="QLabel" name="label_9">
               <property name="font">
                <font>
-                <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
@@ -287,7 +283,7 @@ Qt Framework</string>
                <string>SQLite 3</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignmentFlag::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -295,7 +291,6 @@ Qt Framework</string>
              <widget class="QLabel" name="m_sqliteVersion">
               <property name="font">
                <font>
-                <weight>50</weight>
                 <bold>false</bold>
                </font>
               </property>
@@ -303,7 +298,7 @@ Qt Framework</string>
                <string>version 6.1.0</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignmentFlag::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -315,7 +310,7 @@ Qt Framework</string>
              <string>&lt;a href=&quot;https://www.sqlite.org/&quot;&gt;https://www.sqlite.org/&lt;/a&gt;</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignCenter</set>
+             <set>Qt::AlignmentFlag::AlignCenter</set>
             </property>
             <property name="openExternalLinks">
              <bool>true</bool>
@@ -327,7 +322,7 @@ Qt Framework</string>
         <item>
          <widget class="Line" name="line_3">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
@@ -361,7 +356,6 @@ Qt Framework</string>
              <widget class="QLabel" name="label_14">
               <property name="font">
                <font>
-                <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
@@ -370,7 +364,7 @@ Qt Framework</string>
 &amp; decoder for C++</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignmentFlag::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -380,7 +374,7 @@ Qt Framework</string>
                <string>version 0.2.0</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignmentFlag::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -392,7 +386,7 @@ Qt Framework</string>
              <string>&lt;a href=&quot;https://github.com/Nheko-Reborn/blurhash&quot;&gt;https://github.com/Nheko-Reborn/blurhash&lt;/a&gt;</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignCenter</set>
+             <set>Qt::AlignmentFlag::AlignCenter</set>
             </property>
             <property name="openExternalLinks">
              <bool>true</bool>
@@ -404,7 +398,7 @@ Qt Framework</string>
         <item>
          <widget class="Line" name="line_4">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
@@ -432,7 +426,6 @@ Qt Framework</string>
              <widget class="QLabel" name="label_18">
               <property name="font">
                <font>
-                <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
@@ -440,7 +433,7 @@ Qt Framework</string>
                <string>STB Image Utils</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignmentFlag::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -450,7 +443,7 @@ Qt Framework</string>
                <string>version 2.28</string>
               </property>
               <property name="alignment">
-               <set>Qt::AlignCenter</set>
+               <set>Qt::AlignmentFlag::AlignCenter</set>
               </property>
              </widget>
             </item>
@@ -477,7 +470,6 @@ Qt Framework</string>
     <widget class="QGroupBox" name="groupBox_2">
      <property name="font">
       <font>
-       <weight>75</weight>
        <bold>true</bold>
       </font>
      </property>
@@ -504,7 +496,7 @@ QGroupBox::title {
          <string>&lt;a href=&quot;https://www.svgrepo.com/&quot;&gt;https://www.svgrepo.com/&lt;/a&gt;</string>
         </property>
         <property name="alignment">
-         <set>Qt::AlignCenter</set>
+         <set>Qt::AlignmentFlag::AlignCenter</set>
         </property>
         <property name="openExternalLinks">
          <bool>true</bool>
@@ -523,10 +515,10 @@ QGroupBox::title {
       </size>
      </property>
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Orientation::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Ok</set>
+      <set>QDialogButtonBox::StandardButton::Ok</set>
      </property>
     </widget>
    </item>

@@ -22,7 +22,7 @@
 
 // Qt
 #include <QDialog>
-#include <QtWinExtras/QWinTaskbarButton>
+#include <QTaskBarButton/QTaskBarButton.h>
 
 // Project
 #include <ui_MainDialog.h>
@@ -139,7 +139,7 @@ class MainDialog
 
     sqlite3                       *m_sql3Handle;    /** SQLite db handle */
     std::shared_ptr<ProcessThread> m_thread;        /** Thread to process database. */
-    QWinTaskbarButton             *m_taskBarButton; /** taskbar progress widget. */
+    QTaskBarButton                 m_taskBarButton; /** taskbar progress widget. */
     std::filesystem::path          m_dbPath;        /** Database path, or empty. */
 };
 

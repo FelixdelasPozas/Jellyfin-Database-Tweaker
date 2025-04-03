@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 # Version Number
 set (JELLYFINDBTWEAKER_VERSION_MAJOR 1)
-set (JELLYFINDBTWEAKER_VERSION_MINOR 1)
+set (JELLYFINDBTWEAKER_VERSION_MINOR 2)
 set (JELLYFINDBTWEAKER_VERSION_PATCH 0)
 
 # Find includes in corresponding build directories
@@ -20,14 +20,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 
 # Find the QtWidgets library
-find_package(Qt5 COMPONENTS Widgets WinExtras)
+find_package(Qt6 COMPONENTS Widgets)
 
-# We need add -DQT_WIDGETS_LIB when using QtWidgets in Qt 5.
-#add_definitions(${Qt5Widgets_DEFINITIONS})
-#add_definitions(${Qt5Multimedia_DEFINITIONS})
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt5Multimedia_EXECUTABLE_COMPILE_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt6Widgets_EXECUTABLE_COMPILE_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${Qt6Multimedia_EXECUTABLE_COMPILE_FLAGS}")
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
   set(CORE_EXTERNAL_LIBS ${CORE_EXTERNAL_LIBS} ${QT_QTTEST_LIBRARY})
@@ -49,6 +45,10 @@ set (BLURHASH_FILES
   external/blurhash/blurhash.cpp
 )
 
+set (TASKBARBUTTON_FILES
+  external/QTaskBarButton/QTaskBarButton.cpp
+)
+
 include_directories(
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/external # External code, not from the project.
@@ -56,18 +56,18 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}          # Generated .h files
   ${CMAKE_CURRENT_BINARY_DIR}  # For wrap/ui files
-  ${Qt5Widgets_INCLUDE_DIRS}
-  ${Qt5WinExtras_INCLUDE_DIRS}
+  ${Qt6Widgets_INCLUDE_DIRS}
+  ${Qt6WinExtras_INCLUDE_DIRS}
   )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-deprecated -std=c++20 -mwindows -m64")
 
 # Add Qt Resource files
-qt5_add_resources(RESOURCES
+qt6_add_resources(RESOURCES
   rsc/resources.qrc
 )
 
-qt5_wrap_ui(CORE_UI
+qt6_wrap_ui(CORE_UI
   # .ui for Qt
   MainDialog.ui
   AboutDialog.ui
@@ -81,6 +81,7 @@ set (CORE_SOURCES
   ${CORE_UI}
   ${SQLITE_FILES}
   ${BLURHASH_FILES}
+  ${TASKBARBUTTON_FILES}
   Main.cpp
   MainDialog.cpp
   AboutDialog.cpp
@@ -88,10 +89,8 @@ set (CORE_SOURCES
 )
 
 set(CORE_EXTERNAL_LIBS
-  Qt5::Widgets
-  Qt5::WinExtras
+  Qt6::Widgets
 )
   
 add_executable(JellyfinDBTweaker ${CORE_SOURCES})
 target_link_libraries (JellyfinDBTweaker ${CORE_EXTERNAL_LIBS})
-qt5_use_modules(JellyfinDBTweaker Widgets)
