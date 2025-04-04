@@ -480,7 +480,12 @@ std::vector<PlaylistTracksOperationData> ProcessThread::generatePlaylistTracksOp
 
       auto pathValue = reinterpret_cast<const char *>(sqlite3_column_text(statement, 4));
       std::filesystem::path playlistPath{pathValue};
-      if(!std::filesystem::exists(playlistPath.parent_path())) continue;
+      if(!std::filesystem::exists(playlistPath.parent_path()))
+      {
+        emit message(QString("<span style=\" color:#ff0000;\">Path doesn't exists: <b>'%1'</b>.</span>")
+                .arg(QString::fromStdWString(playlistPath.parent_path().wstring())));
+        continue;
+      }
 
       std::set<std::filesystem::path> filenames; // ordered by name by default
       for (auto const& dir_entry : std::filesystem::directory_iterator{playlistPath.parent_path()})
@@ -578,7 +583,12 @@ void ProcessThread::updatePlaylistImages(const std::vector<PlaylistImageOperatio
 
     ++operationCount;
 
-    if(!std::filesystem::exists(op.path.parent_path())) continue;
+    if(!std::filesystem::exists(op.path.parent_path()))
+    {
+      emit message(QString("<span style=\" color:#ff0000;\">Path doesn't exists: <b>'%1'</b>.</span>")
+                .arg(QString::fromStdWString(op.path.parent_path().wstring())));
+      continue;
+    }
 
     int artistIdx = 0, albumIdx = 0, imageIdx = 0;
 
@@ -641,7 +651,7 @@ void ProcessThread::updateAlbumOperations(const std::vector<PlaylistImageOperati
     const std::string ARTISTS_PART = m_config.processTracksArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album,":"";
     const std::string IMAGES_PART = m_config.processPlaylistImages ? "Images = :image":"";
     const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + " " + IMAGES_PART
-                          + " WHERE Path = :path " + "AND MediaType IS NULL AND type ='" + ALBUM_VALUE + "'";
+                          + " WHERE Path = :path " + "AND (MediaType = 'Unknown' OR MediaType IS NULL) AND type ='" + ALBUM_VALUE + "'";
 
     sqlite3_stmt * statement;
     auto result = sqlite3_prepare_v3(m_sql3Handle, sql.c_str(), -1, SQLITE_PREPARE_PERSISTENT, &statement, NULL);
@@ -661,7 +671,12 @@ void ProcessThread::updateAlbumOperations(const std::vector<PlaylistImageOperati
 
       ++operationCount;
 
-      if(!std::filesystem::exists(op.path)) continue;
+      if(!std::filesystem::exists(op.path))
+      {
+        emit message(QString("<span style=\" color:#ff0000;\">Path doesn't exist: <b>'%1'</b>.</span>")
+                .arg(QString::fromStdWString(op.path.wstring())));
+        continue;
+      } 
 
       int artistIdx = 0, albumIdx = 0, imageIdx = 0;
 
@@ -876,7 +891,6 @@ void ProcessThread::countOperations()
     emit message(QString("Found <b>%1</b> albums to update image, artists and album metadata.").arg(albumsCount));
     totalOperations += albumsCount; // apply
   }
-
 }
 
 //---------------------------------------------------------------
@@ -967,7 +981,7 @@ std::string ProcessThread::albumBlurhash(const std::filesystem::path &path)
       // Jellyfin scales down images as making a blurhash from the small one has
       // the same results as the blurhash of a big image but takes considerably longer.
       // We do the same.
-      qImage.scaledToHeight(x*32, Qt::SmoothTransformation);
+      qImage = qImage.scaledToHeight(x*32, Qt::SmoothTransformation);
       qImage.toPixelFormat(QImage::Format_RGB888);
 
       const auto blurHash = blurhash::encode(qImage.bits(), qImage.width(), qImage.height(), x, y);
