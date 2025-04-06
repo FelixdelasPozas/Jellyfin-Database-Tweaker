@@ -370,7 +370,7 @@ std::vector<TrackNumberOperationData> ProcessThread::generateTracksNumberOperati
   if(m_config.processTracksNumbers)
   {
     sqlite3_stmt * statement;
-    const auto sql = std::string("SELECT * FROM ") + TABLE_NAME + " where type='" + TRACK_VALUE + "' AND IndexNumber IS NULL";
+    const auto sql = std::string("SELECT * FROM ") + TABLE_NAME + " where type='" + TRACK_VALUE + "' AND (IndexNumber IS NULL OR IndexNumber = '0')";
     auto result = sqlite3_prepare_v2(m_sql3Handle, sql.c_str(), -1, &statement, nullptr);
     if(!checkSQLiteError(result, SQLITE_OK, __LINE__))
     {
@@ -880,7 +880,7 @@ void ProcessThread::countOperations()
 
   if(m_config.processTracksNumbers)
   {
-    const auto where_sql = std::string(" where type='") + TRACK_VALUE + "' AND IndexNumber IS NULL";
+    const auto where_sql = std::string(" where type='") + TRACK_VALUE + "' AND (IndexNumber IS NULL OR IndexNumber = '0')";
     const auto tracksCount = countSQLiteOperation(where_sql);
     emit message(QString("Found <b>%1</b> tracks to update track number.").arg(tracksCount));
     totalOperations += 2*tracksCount; // generate + apply

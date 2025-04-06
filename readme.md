@@ -102,7 +102,7 @@ Simple main dialog.
 
 # Repository information
 
-**Version**: 1.2.2
+**Version**: 1.2.3
 
 **Status**: finished. 
 
