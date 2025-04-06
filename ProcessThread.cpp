@@ -559,9 +559,10 @@ std::vector<PlaylistTracksOperationData> ProcessThread::generatePlaylistTracksOp
 //---------------------------------------------------------------
 void ProcessThread::updatePlaylistImages(const std::vector<PlaylistImageOperationData> &operations)
 {
-  const std::string ARTISTS_PART = m_config.processTracksArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album,":"";
+  const std::string ARTISTS_PART = m_config.processTracksArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album":"";
+  const std::string COMMA = m_config.processTracksArtists && m_config.processPlaylistImages ? ", ":" ";
   const std::string IMAGES_PART = m_config.processPlaylistImages ? "Images = :image":"";
-  const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + " " + IMAGES_PART + " WHERE Path LIKE :path AND MediaType = 'Audio'";
+  const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE Path LIKE :path AND (MediaType = 'Audio' OR MediaType = 'Unknown')";
 
   sqlite3_stmt * statement;
   auto result = sqlite3_prepare_v3(m_sql3Handle, sql.c_str(), -1, SQLITE_PREPARE_PERSISTENT, &statement, NULL);
@@ -648,10 +649,11 @@ void ProcessThread::updateAlbumOperations(const std::vector<PlaylistImageOperati
 {
   if(m_config.processAlbums)
   {
-    const std::string ARTISTS_PART = m_config.processTracksArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album,":"";
+    const std::string ARTISTS_PART = m_config.processTracksArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album":"";
+    const std::string COMMA = m_config.processTracksArtists && m_config.processPlaylistImages ? ", ":" ";
     const std::string IMAGES_PART = m_config.processPlaylistImages ? "Images = :image":"";
-    const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + " " + IMAGES_PART
-                          + " WHERE Path = :path " + "AND (MediaType = 'Unknown' OR MediaType IS NULL) AND type ='" + ALBUM_VALUE + "'";
+    const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + COMMA + IMAGES_PART
+                          + " WHERE Path = :path AND (MediaType = 'Unknown' OR MediaType IS NULL) AND type ='" + ALBUM_VALUE + "'";
 
     sqlite3_stmt * statement;
     auto result = sqlite3_prepare_v3(m_sql3Handle, sql.c_str(), -1, SQLITE_PREPARE_PERSISTENT, &statement, NULL);
