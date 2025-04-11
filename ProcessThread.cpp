@@ -459,7 +459,7 @@ std::vector<PlaylistTracksOperationData> ProcessThread::generatePlaylistTracksOp
   if(m_config.processPlaylistTracklist)
   {
     sqlite3_stmt *statement;
-    auto sql = std::string("SELECT * FROM ") + TABLE_NAME + std::string(" WHERE type='") + PLAYLIST_VALUE + "' AND data=X'" + EMPTY_PLAYLIST_BLOB + "'";
+    auto sql = std::string("SELECT * FROM ") + TABLE_NAME + std::string(" WHERE type='") + PLAYLIST_VALUE + "' AND MediaType='Unknown'";
     auto result = sqlite3_prepare_v2(m_sql3Handle, sql.c_str(), -1, &statement, nullptr);
     if(!checkSQLiteError(result,  SQLITE_OK, __LINE__))
     {
@@ -785,8 +785,7 @@ void ProcessThread::updatePlaylistTracks(const std::vector<PlaylistTracksOperati
   if(m_config.processPlaylistTracklist)
   {
     sqlite3_stmt *statement;
-    const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET data=:data WHERE path=:path AND type='"
-        + PLAYLIST_VALUE + "'";
+    const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET MediaType='Audio', data=:data WHERE path=:path AND type='" + PLAYLIST_VALUE + "'";
 
     auto result = sqlite3_prepare_v3(m_sql3Handle, sql.c_str(), -1, SQLITE_PREPARE_PERSISTENT, &statement, NULL);
 
@@ -872,7 +871,7 @@ void ProcessThread::countOperations()
 
   if(m_config.processPlaylistTracklist)
   {
-    const auto where_sql = std::string(" where type='") + PLAYLIST_VALUE + "' AND data=X'" + EMPTY_PLAYLIST_BLOB + "'";
+    const auto where_sql = std::string(" where type='") + PLAYLIST_VALUE + "' AND MediaType='Unknown'";
     const auto tracklistsCount = countSQLiteOperation(where_sql);
     emit message(QString("Found <b>%1</b> playlist to update audio tracks list.").arg(tracklistsCount));
     totalOperations += 2*tracklistsCount; // generate + apply
