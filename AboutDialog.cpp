@@ -31,7 +31,7 @@ extern "C" {
 #include <sqlite3/sqlite3.h>
 }
 
-const QString AboutDialog::VERSION = QString("version 1.2.4");
+const QString AboutDialog::VERSION = QString("version 1.2.5");
 const QString COPYRIGHT{"Copyright (c) 2024-%1 Félix de las Pozas Álvarez"};
 
 //-----------------------------------------------------------------

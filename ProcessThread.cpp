@@ -562,7 +562,7 @@ void ProcessThread::updatePlaylistImages(const std::vector<PlaylistImageOperatio
   const std::string ARTISTS_PART = m_config.processTracksArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album":"";
   const std::string COMMA = m_config.processTracksArtists && m_config.processPlaylistImages ? ", ":" ";
   const std::string IMAGES_PART = m_config.processPlaylistImages ? "Images = :image":"";
-  const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE Path LIKE :path AND (MediaType = 'Audio' OR MediaType = 'Unknown')";
+  const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET Name=:album, SortName=:sortname, " + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE Path LIKE :path AND (MediaType = 'Audio' OR MediaType = 'Unknown')";
 
   sqlite3_stmt * statement;
   auto result = sqlite3_prepare_v3(m_sql3Handle, sql.c_str(), -1, SQLITE_PREPARE_PERSISTENT, &statement, NULL);
@@ -593,6 +593,9 @@ void ProcessThread::updatePlaylistImages(const std::vector<PlaylistImageOperatio
 
     int artistIdx = 0, albumIdx = 0, imageIdx = 0;
 
+    int sortIdx = sqlite3_bind_parameter_index(statement, ":sortname");
+    checkSQLiteError(result, SQLITE_OK, __LINE__);
+
     if(m_config.processTracksArtists)
     {
       artistIdx = sqlite3_bind_parameter_index(statement, ":artist");
@@ -608,6 +611,12 @@ void ProcessThread::updatePlaylistImages(const std::vector<PlaylistImageOperatio
     }
 
     const auto pathIdx = sqlite3_bind_parameter_index(statement, ":path");
+    checkSQLiteError(result, SQLITE_OK, __LINE__);
+
+    // Substitutions
+    auto sortName = op.album;
+    std::transform(sortName.begin(), sortName.end(), sortName.begin(), [](unsigned char c){ return std::tolower(c); });
+    result = sqlite3_bind_text(statement, sortIdx, sortName.c_str(), sortName.length(), SQLITE_TRANSIENT);
     checkSQLiteError(result, SQLITE_OK, __LINE__);
 
     if(m_config.processTracksArtists)
@@ -652,7 +661,7 @@ void ProcessThread::updateAlbumOperations(const std::vector<PlaylistImageOperati
     const std::string ARTISTS_PART = m_config.processTracksArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album":"";
     const std::string COMMA = m_config.processTracksArtists && m_config.processPlaylistImages ? ", ":" ";
     const std::string IMAGES_PART = m_config.processPlaylistImages ? "Images = :image":"";
-    const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + COMMA + IMAGES_PART
+    const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET Name=:album, SortName=:sortname, " + ARTISTS_PART + COMMA + IMAGES_PART
                           + " WHERE Path = :path AND (MediaType = 'Unknown' OR MediaType IS NULL) AND type ='" + ALBUM_VALUE + "'";
 
     sqlite3_stmt * statement;
@@ -681,6 +690,7 @@ void ProcessThread::updateAlbumOperations(const std::vector<PlaylistImageOperati
       } 
 
       int artistIdx = 0, albumIdx = 0, imageIdx = 0;
+      const int sortIdx = sqlite3_bind_parameter_index(statement, ":sortname");
 
       if(m_config.processTracksArtists)
       {
@@ -694,6 +704,12 @@ void ProcessThread::updateAlbumOperations(const std::vector<PlaylistImageOperati
       }
 
       const auto pathIdx = sqlite3_bind_parameter_index(statement, ":path");
+      checkSQLiteError(result, SQLITE_OK, __LINE__);
+
+      // Substitutions
+      auto sortName = op.album;
+      std::transform(sortName.begin(), sortName.end(), sortName.begin(), [](unsigned char c){ return std::tolower(c); });
+      result = sqlite3_bind_text(statement, sortIdx, sortName.c_str(), sortName.length(), SQLITE_TRANSIENT);
       checkSQLiteError(result, SQLITE_OK, __LINE__);
 
       if(m_config.processTracksArtists)
