@@ -562,95 +562,109 @@ void ProcessThread::updatePlaylistImages(const std::vector<PlaylistImageOperatio
   const std::string ARTISTS_PART = m_config.processTracksArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album":"";
   const std::string COMMA = m_config.processTracksArtists && m_config.processPlaylistImages ? ", ":" ";
   const std::string IMAGES_PART = m_config.processPlaylistImages ? "Images = :image":"";
-  const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET Name=:album, SortName=:sortname, " + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE Path LIKE :path AND (MediaType = 'Audio' OR MediaType = 'Unknown')";
+  const std::string sqlPlaylist = std::string("UPDATE ") + TABLE_NAME + " SET Name=:album, SortName=:sortname, " + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE Path LIKE :path AND type='" + PLAYLIST_VALUE + "'";
+  const std::string sqlTracks = std::string("UPDATE ") + TABLE_NAME + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE Path LIKE :path AND type='" + TRACK_VALUE + "'";
 
-  sqlite3_stmt * statement;
-  auto result = sqlite3_prepare_v3(m_sql3Handle, sql.c_str(), -1, SQLITE_PREPARE_PERSISTENT, &statement, NULL);
-
-  for(auto &op: operations)
+  for(auto &sqlCommand: {sqlPlaylist,sqlTracks})
   {
-    if(m_abort)
-    {
-      m_error = "Aborted operation.";
-      return;
-    }
+    const bool useSort = (sqlCommand == sqlPlaylist);
 
-    // For debug
-    // std::cout << "Operation: " << op.path.string() << std::endl;
-
-    emit message(QString("Apply update for <b>'%1'</b> playlist metadata.").arg(QString::fromStdWString(op.path.parent_path().stem().wstring())));
-
-    const auto path = op.path.parent_path().string() + "\\%";
-
-    ++operationCount;
-
-    if(!std::filesystem::exists(op.path.parent_path()))
-    {
-      emit message(QString("<span style=\" color:#ff0000;\">Path doesn't exists: <b>'%1'</b>.</span>")
-                .arg(QString::fromStdWString(op.path.parent_path().wstring())));
-      continue;
-    }
-
-    int artistIdx = 0, albumIdx = 0, imageIdx = 0;
-
-    int sortIdx = sqlite3_bind_parameter_index(statement, ":sortname");
+    sqlite3_stmt * statement;
+    auto result = sqlite3_prepare_v3(m_sql3Handle, sqlCommand.c_str(), -1, SQLITE_PREPARE_PERSISTENT, &statement, NULL);
     checkSQLiteError(result, SQLITE_OK, __LINE__);
 
-    if(m_config.processTracksArtists)
+    for(auto &op: operations)
     {
-      artistIdx = sqlite3_bind_parameter_index(statement, ":artist");
+      if(m_abort)
+      {
+        m_error = "Aborted operation.";
+        return;
+      }
+
+      // For debug
+      // std::cout << "Operation: " << op.path.string() << std::endl;
+
+      emit message(QString("Apply update for <b>'%1'</b> playlist %2 metadata.").arg(QString::fromStdWString(op.path.parent_path().stem().wstring()))
+                                                                                .arg(useSort ? "":"tracks"));
+
+      const auto path = op.path.parent_path().string() + "\\%";
+
+      ++operationCount;
+
+      if(!std::filesystem::exists(op.path.parent_path()))
+      {
+        emit message(QString("<span style=\" color:#ff0000;\">Path doesn't exists: <b>'%1'</b>.</span>")
+                  .arg(QString::fromStdWString(op.path.parent_path().wstring())));
+        continue;
+      }
+
+      int artistIdx = 0, albumIdx = 0, imageIdx = 0, sortIdx = 0;
+
+      if(useSort)
+      {
+        sortIdx = sqlite3_bind_parameter_index(statement, ":sortname");
+        checkSQLiteError(result, SQLITE_OK, __LINE__);
+      }
+
+      if(m_config.processTracksArtists)
+      {
+        artistIdx = sqlite3_bind_parameter_index(statement, ":artist");
+        checkSQLiteError(result, SQLITE_OK, __LINE__);
+        albumIdx = sqlite3_bind_parameter_index(statement, ":album");
+        checkSQLiteError(result, SQLITE_OK, __LINE__);
+      }
+
+      if(m_config.processPlaylistImages)
+      {
+        imageIdx = sqlite3_bind_parameter_index(statement, ":image");
+        checkSQLiteError(result, SQLITE_OK, __LINE__);
+      }
+
+      const auto pathIdx = sqlite3_bind_parameter_index(statement, ":path");
       checkSQLiteError(result, SQLITE_OK, __LINE__);
-      albumIdx = sqlite3_bind_parameter_index(statement, ":album");
+
+      // Substitutions
+      if(useSort)
+      {
+        auto sortName = op.album;
+        std::transform(sortName.begin(), sortName.end(), sortName.begin(), [](unsigned char c){ return std::tolower(c); });
+        result = sqlite3_bind_text(statement, sortIdx, sortName.c_str(), sortName.length(), SQLITE_TRANSIENT);
+        checkSQLiteError(result, SQLITE_OK, __LINE__);
+      }
+
+      if(m_config.processTracksArtists)
+      {
+        result = sqlite3_bind_text(statement, artistIdx, op.artist.c_str(), op.artist.length(), SQLITE_TRANSIENT);
+        checkSQLiteError(result, SQLITE_OK, __LINE__);
+        result = sqlite3_bind_text(statement, albumIdx, op.album.c_str(), op.album.length(), SQLITE_TRANSIENT);
+        checkSQLiteError(result, SQLITE_OK, __LINE__);
+      }
+
+      if(m_config.processPlaylistImages)
+      {
+        result = sqlite3_bind_text(statement, imageIdx, op.imageData.c_str(), op.imageData.length(), SQLITE_TRANSIENT);
+        checkSQLiteError(result, SQLITE_OK, __LINE__);
+      }
+
+      result = sqlite3_bind_text(statement, pathIdx, path.c_str(), path.length(), SQLITE_TRANSIENT);
       checkSQLiteError(result, SQLITE_OK, __LINE__);
+
+      // For debug
+      // std::cout << sqlite3_expanded_sql(statement) << std::endl;
+
+      result = sqlite3_step(statement);
+      checkSQLiteError(result, SQLITE_DONE, __LINE__);
+      result = sqlite3_clear_bindings( statement );
+      checkSQLiteError(result, SQLITE_OK, __LINE__);
+      result = sqlite3_reset( statement );
+      checkSQLiteError(result, SQLITE_OK, __LINE__);
+
+      checkProgress(operationCount);
     }
 
-    if(m_config.processPlaylistImages)
-    {
-      imageIdx = sqlite3_bind_parameter_index(statement, ":image");
-      checkSQLiteError(result, SQLITE_OK, __LINE__);
-    }
-
-    const auto pathIdx = sqlite3_bind_parameter_index(statement, ":path");
+    result = sqlite3_finalize(statement);
     checkSQLiteError(result, SQLITE_OK, __LINE__);
-
-    // Substitutions
-    auto sortName = op.album;
-    std::transform(sortName.begin(), sortName.end(), sortName.begin(), [](unsigned char c){ return std::tolower(c); });
-    result = sqlite3_bind_text(statement, sortIdx, sortName.c_str(), sortName.length(), SQLITE_TRANSIENT);
-    checkSQLiteError(result, SQLITE_OK, __LINE__);
-
-    if(m_config.processTracksArtists)
-    {
-      result = sqlite3_bind_text(statement, artistIdx, op.artist.c_str(), op.artist.length(), SQLITE_TRANSIENT);
-      checkSQLiteError(result, SQLITE_OK, __LINE__);
-      result = sqlite3_bind_text(statement, albumIdx, op.album.c_str(), op.album.length(), SQLITE_TRANSIENT);
-      checkSQLiteError(result, SQLITE_OK, __LINE__);
-    }
-
-    if(m_config.processPlaylistImages)
-    {
-      result = sqlite3_bind_text(statement, imageIdx, op.imageData.c_str(), op.imageData.length(), SQLITE_TRANSIENT);
-      checkSQLiteError(result, SQLITE_OK, __LINE__);
-    }
-
-    result = sqlite3_bind_text(statement, pathIdx, path.c_str(), path.length(), SQLITE_TRANSIENT);
-    checkSQLiteError(result, SQLITE_OK, __LINE__);
-
-    // For debug
-    // std::cout << sqlite3_expanded_sql(statement) << std::endl;
-
-    result = sqlite3_step(statement);
-    checkSQLiteError(result, SQLITE_DONE, __LINE__);
-    result = sqlite3_clear_bindings( statement );
-    checkSQLiteError(result, SQLITE_OK, __LINE__);
-    result = sqlite3_reset( statement );
-    checkSQLiteError(result, SQLITE_OK, __LINE__);
-
-    checkProgress(operationCount);
   }
-
-  result = sqlite3_finalize(statement);
-  checkSQLiteError(result, SQLITE_OK, __LINE__);
 }
 
 //---------------------------------------------------------------
@@ -882,7 +896,7 @@ void ProcessThread::countOperations()
     const auto where_sql = std::string(" where type='") + PLAYLIST_VALUE + "' AND (Images IS NULL OR Album IS NULL OR Artists IS NULL)";
     const auto playlistCount = countSQLiteOperation(where_sql);
     emit message(QString("Found <b>%1</b> playlists to update image, artists and album metadata.").arg(playlistCount));
-    totalOperations += 2*playlistCount; // generate + apply
+    totalOperations += 3*playlistCount; // generate + apply + apply tracks
   }
 
   if(m_config.processPlaylistTracklist)

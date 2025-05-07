@@ -102,7 +102,7 @@ Simple main dialog.
 
 # Repository information
 
-**Version**: 1.2.5
+**Version**: 1.2.6
 
 **Status**: finished. 
 
@@ -110,7 +110,7 @@ Simple main dialog.
 
 | Language                 |files     |blank    |comment   |code      |
 |:-------------------------|---------:|--------:|---------:|---------:|
-| C++                      |   4      | 307     |   154    | 1192     |
+| C++                      |   4      | 305     |   154    | 1198     |
 | C/C++ Header             |   3      |  74     |   221    |  143     |
 | CMake                    |   1      |  18     |    12    |   66     |
-| **Total**                | **8**    | **399** | **387**  | **1401** |
+| **Total**                | **8**    | **397** | **387**  | **1407** |
