@@ -559,11 +559,11 @@ std::vector<PlaylistTracksOperationData> ProcessThread::generatePlaylistTracksOp
 //---------------------------------------------------------------
 void ProcessThread::updatePlaylistImages(const std::vector<PlaylistImageOperationData> &operations)
 {
-  const std::string ARTISTS_PART = m_config.processTracksArtists ? "Artists = :artist, AlbumArtists=:artist, Album = :album":"";
+  const std::string ARTISTS_PART = m_config.processTracksArtists ? "Artists=:artist, AlbumArtists=:artist, Album=:album":"";
   const std::string COMMA = m_config.processTracksArtists && m_config.processPlaylistImages ? ", ":" ";
-  const std::string IMAGES_PART = m_config.processPlaylistImages ? "Images = :image":"";
+  const std::string IMAGES_PART = m_config.processPlaylistImages ? "Images=:image":"";
   const std::string sqlPlaylist = std::string("UPDATE ") + TABLE_NAME + " SET Name=:album, SortName=:sortname, " + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE Path LIKE :path AND type='" + PLAYLIST_VALUE + "'";
-  const std::string sqlTracks = std::string("UPDATE ") + TABLE_NAME + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE Path LIKE :path AND type='" + TRACK_VALUE + "'";
+  const std::string sqlTracks = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE type='" + TRACK_VALUE + "' AND path=:path";
 
   for(auto &sqlCommand: {sqlPlaylist,sqlTracks})
   {
