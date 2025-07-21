@@ -1,7 +1,7 @@
 #
 # Jellyfin Database Tweaker CMake configuration.
 #
-cmake_minimum_required (VERSION 3.0.0)
+cmake_minimum_required (VERSION 3.10.0)
 
 project(JellyfinDBTweaker)
 
@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD 20)
 # Version Number
 set (JELLYFINDBTWEAKER_VERSION_MAJOR 1)
 set (JELLYFINDBTWEAKER_VERSION_MINOR 2)
-set (JELLYFINDBTWEAKER_VERSION_PATCH 7)
+set (JELLYFINDBTWEAKER_VERSION_PATCH 8)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)

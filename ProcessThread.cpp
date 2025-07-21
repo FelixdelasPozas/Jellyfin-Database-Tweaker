@@ -60,11 +60,18 @@ const std::string EMPTY_PLAYLIST_TEXT = "{\"OwnerUserId\":\"00000000000000000000
 
 const int BLURHASH_MAXSIZE = 5;
 const QString SEPARATOR = " - ";
+const QString ABORT_STRING = "Operation aborted by the user.";
 
 // Global progress values.
 unsigned long operationCount = 0;
 unsigned long totalOperations = 0;
 int currentProgress = 0;
+
+//---------------------------------------------------------------
+inline QString makeErrorString(const QString &errorMsg)
+{
+  return QString("<span style=\" color:#ff0000;\">%1</span>").arg(errorMsg);
+}
 
 //---------------------------------------------------------------
 ProcessThread::ProcessThread(sqlite3 *db, const ProcessConfiguration config, QObject *parent)
@@ -104,7 +111,7 @@ void ProcessThread::run()
 
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         return;
       }
 
@@ -112,7 +119,7 @@ void ProcessThread::run()
 
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         return;
       }
 
@@ -120,7 +127,7 @@ void ProcessThread::run()
 
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         return;
       }
 
@@ -128,7 +135,7 @@ void ProcessThread::run()
 
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         return;
       }
 
@@ -141,7 +148,7 @@ void ProcessThread::run()
 
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         return;
       }
 
@@ -149,7 +156,7 @@ void ProcessThread::run()
 
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         return;
       }
 
@@ -157,7 +164,7 @@ void ProcessThread::run()
 
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         return;
       }
 
@@ -205,9 +212,12 @@ unsigned long ProcessThread::countSQLiteOperation(const std::string &where_sql)
   const auto result = sqlite3_exec(m_sql3Handle, sql.c_str(), count_callback, &count, nullptr);
   if (result != SQLITE_OK)
   {
-    emit message(QString("Unable to perform count operation. Where statement is: %1. SQLite3 error: %2.")
-        .arg(QString::fromStdString(where_sql)).arg(QString::fromLatin1(sqlite3_errstr(result))));
-    return 0;
+      const auto errorMsg =
+          makeErrorString(QString("Unable to perform count operation. Where statement is: %1. SQLite3 error: %2.")
+                              .arg(QString::fromStdString(where_sql))
+                              .arg(QString::fromLatin1(sqlite3_errstr(result))));
+      emit message(errorMsg);
+      return 0;
   }
 
   return count;
@@ -235,7 +245,7 @@ std::vector<PlaylistImageOperationData> ProcessThread::generatePlaylistImageOper
     {
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         sqlite3_finalize(statement);
         return operations;
       }
@@ -245,8 +255,10 @@ std::vector<PlaylistImageOperationData> ProcessThread::generatePlaylistImageOper
       const std::filesystem::path playlistPath(pathValue);
       if(!std::filesystem::exists(playlistPath))
       {
-        emit message(QString("<span style=\" color:#ff0000;\">Playlist path <b>'%1'</b> doesn't exist!</span>").arg(QString::fromStdWString(playlistPath.wstring())));
-        continue;
+          const auto errorMsg = makeErrorString(
+              QString("Playlist path <b>'%1'</b> doesn't exist!").arg(QString::fromStdWString(playlistPath.wstring())));
+          emit message(errorMsg);
+          continue;
       }
 
       emit message(QString("Generate metadata information of playlist <b>'%1'</b>.").arg(QString::fromStdWString(playlistPath.filename().wstring())));
@@ -310,7 +322,7 @@ std::vector<PlaylistImageOperationData> ProcessThread::generateAlbumsOperationsD
     {
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         sqlite3_finalize(statement);
         return operations;
       }
@@ -383,7 +395,7 @@ std::vector<TrackNumberOperationData> ProcessThread::generateTracksNumberOperati
     {
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         sqlite3_finalize(statement);
         return operations;
       }
@@ -393,16 +405,20 @@ std::vector<TrackNumberOperationData> ProcessThread::generateTracksNumberOperati
       const std::filesystem::path trackPath(pathValue);
       if(!std::filesystem::exists(trackPath))
       {
-        emit message(QString("<span style=\" color:#ff0000;\">Track path <b>'%1'</b> doesn't exist!</span>").arg(QString::fromStdWString(trackPath.wstring())));
-        continue;
+          const auto errorMsg = makeErrorString(
+              QString("Track path <b>'%1'</b> doesn't exist!").arg(QString::fromStdWString(trackPath.wstring())));
+          emit message(errorMsg);
+          continue;
       }
 
       const auto trackName = QString::fromStdString(trackPath.stem().string());
       const auto parts = trackName.split(" - ");
       if(parts.size() < 2)
       {
-        emit message(QString("<span style=\" color:#ff0000;\">Track path <b>'%1'</b> split error!</span>").arg(QString::fromStdWString(trackPath.wstring())));
-        continue;
+          const auto errorMsg = makeErrorString(
+              QString("Track path <b>'%1'</b> split error!").arg(QString::fromStdWString(trackPath.wstring())));
+          emit message(errorMsg);
+          continue;
       }
 
       const auto numberPart = parts.front();
@@ -473,7 +489,7 @@ std::vector<PlaylistTracksOperationData> ProcessThread::generatePlaylistTracksOp
     {
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         sqlite3_finalize(statement);
         return operations;
       }
@@ -482,9 +498,11 @@ std::vector<PlaylistTracksOperationData> ProcessThread::generatePlaylistTracksOp
       std::filesystem::path playlistPath{pathValue};
       if(!std::filesystem::exists(playlistPath.parent_path()))
       {
-        emit message(QString("<span style=\" color:#ff0000;\">Path doesn't exists: <b>'%1'</b>.</span>")
-                .arg(QString::fromStdWString(playlistPath.parent_path().wstring())));
-        continue;
+          const auto errorMsg =
+              makeErrorString(QString("Path doesn't exists: <b>'%1'</b>.")
+                                  .arg(QString::fromStdWString(playlistPath.parent_path().wstring())));
+          emit message(errorMsg);
+          continue;
       }
 
       std::set<std::filesystem::path> filenames; // ordered by name by default
@@ -506,7 +524,7 @@ std::vector<PlaylistTracksOperationData> ProcessThread::generatePlaylistTracksOp
     }
 
     // Fill missing file ids.
-    sql = std::string("SELECT * FROM ") + TABLE_NAME + std::string(" WHERE type='") + TRACK_VALUE + "' AND path=:path";
+    sql = std::string("SELECT * FROM ") + TABLE_NAME + std::string(" WHERE type='") + TRACK_VALUE + "' AND Path=:path";
     result = sqlite3_prepare_v3(m_sql3Handle, sql.c_str(), -1, SQLITE_PREPARE_PERSISTENT, &statement, NULL);
     checkSQLiteError(result, SQLITE_OK, __LINE__);
     const int pathIdx = sqlite3_bind_parameter_index(statement, ":path");
@@ -515,7 +533,7 @@ std::vector<PlaylistTracksOperationData> ProcessThread::generatePlaylistTracksOp
     {
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         sqlite3_finalize(statement);
         return operations;
       }
@@ -530,6 +548,7 @@ std::vector<PlaylistTracksOperationData> ProcessThread::generatePlaylistTracksOp
         result = sqlite3_step(statement);
         checkSQLiteError(result, SQLITE_ROW, __LINE__);
 
+        // Column 46 should be PresentationUniqueKey
         auto idValue = reinterpret_cast<const char *>(sqlite3_column_text(statement, 46));
         op.track_ids.emplace_back(std::string(idValue));
 
@@ -563,7 +582,7 @@ void ProcessThread::updatePlaylistImages(const std::vector<PlaylistImageOperatio
   const std::string COMMA = m_config.processTracksArtists && m_config.processPlaylistImages ? ", ":" ";
   const std::string IMAGES_PART = m_config.processPlaylistImages ? "Images=:image":"";
   const std::string sqlPlaylist = std::string("UPDATE ") + TABLE_NAME + " SET Name=:album, SortName=:sortname, " + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE Path LIKE :path AND type='" + PLAYLIST_VALUE + "'";
-  const std::string sqlTracks = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE type='" + TRACK_VALUE + "' AND path=:path";
+  const std::string sqlTracks = std::string("UPDATE ") + TABLE_NAME + " SET " + ARTISTS_PART + COMMA + IMAGES_PART + " WHERE type='" + TRACK_VALUE + "' AND path LIKE :path";
 
   for(auto &sqlCommand: {sqlPlaylist,sqlTracks})
   {
@@ -577,7 +596,7 @@ void ProcessThread::updatePlaylistImages(const std::vector<PlaylistImageOperatio
     {
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         return;
       }
 
@@ -593,9 +612,10 @@ void ProcessThread::updatePlaylistImages(const std::vector<PlaylistImageOperatio
 
       if(!std::filesystem::exists(op.path.parent_path()))
       {
-        emit message(QString("<span style=\" color:#ff0000;\">Path doesn't exists: <b>'%1'</b>.</span>")
-                  .arg(QString::fromStdWString(op.path.parent_path().wstring())));
-        continue;
+          const auto errorMsg = makeErrorString(QString("Path doesn't exists: <b>'%1'</b>.")
+                                                       .arg(QString::fromStdWString(op.path.parent_path().wstring())));
+          emit message(errorMsg);
+          continue;
       }
 
       int artistIdx = 0, albumIdx = 0, imageIdx = 0, sortIdx = 0;
@@ -685,7 +705,7 @@ void ProcessThread::updateAlbumOperations(const std::vector<PlaylistImageOperati
     {
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         sqlite3_finalize(statement);
         return;
       }
@@ -698,9 +718,10 @@ void ProcessThread::updateAlbumOperations(const std::vector<PlaylistImageOperati
 
       if(!std::filesystem::exists(op.path))
       {
-        emit message(QString("<span style=\" color:#ff0000;\">Path doesn't exist: <b>'%1'</b>.</span>")
-                .arg(QString::fromStdWString(op.path.wstring())));
-        continue;
+          const auto errorMsg = makeErrorString(
+              QString("Path doesn't exist: <b>'%1'</b>").arg(QString::fromStdWString(op.path.wstring())));
+          emit message(errorMsg);
+          continue;
       } 
 
       int artistIdx = 0, albumIdx = 0, imageIdx = 0;
@@ -766,7 +787,7 @@ void ProcessThread::updateTrackNumbers(const std::vector<TrackNumberOperationDat
 {
   if(m_config.processTracksNumbers)
   {
-    const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET IndexNumber=:index WHERE Path = :path AND type='"
+    const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET IndexNumber=:index WHERE Path=:path AND type='"
                           + TRACK_VALUE + "'";
 
     sqlite3_stmt * statement;
@@ -778,7 +799,7 @@ void ProcessThread::updateTrackNumbers(const std::vector<TrackNumberOperationDat
     {
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         sqlite3_finalize(statement);
         return;
       }
@@ -815,7 +836,7 @@ void ProcessThread::updatePlaylistTracks(const std::vector<PlaylistTracksOperati
   if(m_config.processPlaylistTracklist)
   {
     sqlite3_stmt *statement;
-    const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET MediaType='Audio', data=:data WHERE path=:path AND type='" + PLAYLIST_VALUE + "'";
+    const std::string sql = std::string("UPDATE ") + TABLE_NAME + " SET MediaType='Audio', data=:data WHERE Path=:path AND type='" + PLAYLIST_VALUE + "'";
 
     auto result = sqlite3_prepare_v3(m_sql3Handle, sql.c_str(), -1, SQLITE_PREPARE_PERSISTENT, &statement, NULL);
 
@@ -828,7 +849,7 @@ void ProcessThread::updatePlaylistTracks(const std::vector<PlaylistTracksOperati
     {
       if(m_abort)
       {
-        m_error = "Aborted operation.";
+        m_error = ABORT_STRING;
         return;
       }
 
@@ -841,9 +862,12 @@ void ProcessThread::updatePlaylistTracks(const std::vector<PlaylistTracksOperati
 
       if(jsonDoc.isNull())
       {
-        emit message(QString("<span style=\" color:#ff0000;\">Playlist tracklist JSON is null! Path is <b>'%1'</b>, parse error is %2.</span>")
-                .arg(QString::fromStdWString(op.path.wstring())).arg(parseError.errorString()));
-        continue;
+          const auto errorMsg =
+              makeErrorString(QString("Playlist tracklist JSON is null! Path is <b>'%1'</b>, parse error is %2.")
+                                  .arg(QString::fromStdWString(op.path.wstring()))
+                                  .arg(parseError.errorString()));
+          emit message(errorMsg);
+          continue;
       }
 
       int i = 0;
@@ -957,6 +981,13 @@ std::string ProcessThread::albumBlurhash(const std::filesystem::path &path)
 {
   std::string result;
 
+  if(!std::filesystem::is_directory(path))
+  {
+    const auto errorMsg = makeErrorString(QString("Path to image is not a directory! Path: %1").arg(QString::fromStdString(path.string())));
+    emit message(errorMsg);
+    return result;
+  }
+
   std::filesystem::path imagePath;
   for (auto const& dir_entry : std::filesystem::directory_iterator{path})
   {
@@ -991,11 +1022,13 @@ std::string ProcessThread::albumBlurhash(const std::filesystem::path &path)
 
     if (!imageData)
     {
-      emit message(QString("Unable to load image <b>'%1'</b>.").arg(QString::fromStdString(imagePath.string())));
+      const auto errorMsg = makeErrorString(QString("Unable to load image <b>'%1'</b>.").arg(QString::fromStdString(imagePath.string())));
+      emit message(errorMsg);
     }
     else if(n != 3)
     {
-      emit message(QString("Couldn't decode <b>'%1'</b> to 3 channel RGB.").arg(QString::fromStdString(imagePath.string())));
+      const auto errorMsg = makeErrorString(QString("Couldn't decode <b>'%1'</b> to 3 channel RGB.").arg(QString::fromStdString(imagePath.string())));
+      emit message(errorMsg);
       stbi_image_free(imageData);
     }
     else
@@ -1032,8 +1065,9 @@ std::string ProcessThread::albumBlurhash(const std::filesystem::path &path)
   }
   else
   {
-    emit message(QString("<span style=\" color:#ff0000;\">Unable to assign image to <b>'%1'</b>.</span>")
+    auto errorMsg = makeErrorString(QString("Unable to assign image to <b>'%1'</b>.")
                  .arg(QString::fromStdWString(path.wstring())));
+    emit message(errorMsg);
   }
 
   return result;

@@ -83,7 +83,7 @@ MainDialog::MainDialog(std::filesystem::path dbPath, QWidget *p, Qt::WindowFlags
   m_taskBarButton.setMaximum(100);
   m_taskBarButton.setMinimum(100);
   m_taskBarButton.setState(QTaskBarButton::State::Invisible);
-  m_taskBarButton.setValue(QTaskBarButton::State::Invisible);
+  m_taskBarButton.setValue(0);
 
   connectSignals();
 
@@ -275,9 +275,9 @@ void MainDialog::onProgressUpdated(int value)
 //---------------------------------------------------------------
 void MainDialog::onProcessThreadFinished()
 {
-  if(m_thread->isAborted())
+  if(m_thread && m_thread->isAborted())
   {
-    log(QString("Database update process aborted! Database %1 been modified.").arg(m_thread->hasModifiedDB() ? "HAS":"HAS NOT"));
+    log(QString("<span style=\" color:#ff0000;\">Database update process aborted! Database %1 been modified.</span>").arg(m_thread->hasModifiedDB() ? "HAS":"HAS NOT"));
   }
 
   if(m_thread && !m_thread->error().isEmpty() && !m_thread->isAborted())
