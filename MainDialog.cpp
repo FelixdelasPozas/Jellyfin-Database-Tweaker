@@ -213,6 +213,7 @@ void MainDialog::onUpdateButtonPressed()
 
       m_thread->start();
       m_metadata->setEnabled(false);
+      m_progressBar->setValue(0);
     }
     else
     {
@@ -291,7 +292,6 @@ void MainDialog::onProcessThreadFinished()
 
   m_updateButton->setText("Update DB");
   m_quitButton->setEnabled(true);
-  m_progressBar->setValue(0);
 
   if(automate && continueAutomation)
     QApplication::quit();
