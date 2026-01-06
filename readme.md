@@ -1,6 +1,9 @@
 Jellyfin Metadata Database Tweaker
 ==================================
 
+> [!WARNING]
+> This application is valid only for versions 10.10.X and will not work with newer versions. Newer versions use a different database structure with more tables, which is noticeably slower on older hardware, such as that used for my Jellyfin server. Therefore, I will continue using the latest stable version, 10.10.7, and will not be updating this software in the near future.
+
 # Summary
 - [Description](#description)
 - [Compilation](#compilation-requirements)
